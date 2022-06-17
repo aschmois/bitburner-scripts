@@ -1,0 +1,11 @@
+{
+  "compilerOptions": {
+    "module": "es6",
+    "outDir": "build",
+    "checkJs": true,
+    "strict": true,
+    "allowJs": true
+  },
+  "exclude": ["node_modules", "**/node_modules/*"],
+  "includes": ["src/**/*"]
+}
