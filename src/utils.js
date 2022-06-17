@@ -2,18 +2,19 @@ import { Global } from './global.js'
 
 /**
  * @param {Global} g
- * @param {String} currentNode
- * @param {Set<String>} hostArray Note: this is mutated
- * @returns {Set<String>} all scannable hosts. Note: Same as the `hostArray` param
+ * @param {Server} currentServer
+ * @param {Map<String,Server>} servers Note: this is mutated
+ * @returns {Map<String,Server>} all scannable hosts. Note: Same as the `servers` param
  */
-export function searchForHosts(g, currentNode = 'home', hostArray = new Set()) {
-  hostArray.add(currentNode)
-  const nodes = g.ns.scan(currentNode)
+export function scanForServers(g, currentServer = g.ns.getServer('home'), servers = new Map()) {
+  servers.set(currentServer.hostname, currentServer)
+  const serverHostNames = g.ns.scan(currentServer.hostname)
 
-  for (const node of nodes) {
-    if (!hostArray.has(node)) searchForHosts(g, node, hostArray)
+  for (const serverHostName of serverHostNames) {
+    const server = g.ns.getServer(serverHostName)
+    if (!servers.get(server.hostname)) scanForServers(g, server, servers)
   }
-  return hostArray
+  return servers
 }
 
 /**
@@ -32,60 +33,132 @@ export function isHackable(g, server) {
 
 /**
  * @param {Global} g
- * @returns {Set<Server>}
+ * @param {Map<String,Server>} servers defaults to all servers
+ * @returns {Map<String,Server>}
  */
-export function getHackableServers(g) {
-  const allHostNames = searchForHosts(g)
-  const hackableHostNames = new Set()
-  for (const hostName of allHostNames) {
-    const server = g.ns.getServer(hostName)
+export function getHackableServers(g, servers = scanForServers(g)) {
+  const hackableServers = new Map()
+  for (const [_, server] of servers.entries()) {
     if (isHackable(g, server)) {
-      hackableHostNames.add(server)
+      hackableServers.set(server.hostname, server)
     }
   }
-  return hackableHostNames
+  return hackableServers
 }
 
 /**
  * @param {Global} g
- * @param {String} hostNameToHackOn
+ * @param {Map<String,Server>} servers defaults to all servers
+ * @returns {Map<String,Server>}
+ */
+export function getServersThatNeedBackdoor(g, servers = scanForServers(g)) {
+  const needBackdoor = new Map()
+  for (const [_, server] of servers.entries()) {
+    if (!server.backdoorInstalled) {
+      needBackdoor.set(server.hostname, server)
+    }
+  }
+  return needBackdoor
+}
+
+/**
+ * @param {Global} g
+ * @param {Server} serverToHackOn
  * @param {Server=} singleServerToHack If undefined will hack all available hackable servers
  */
-export async function hackOnServer(g, hostNameToHackOn, singleServerToHack) {
+export async function hackOnServer(g, serverToHackOn, singleServerToHack) {
   let serversToHack
   if (singleServerToHack) {
-    serversToHack = new Set()
-    serversToHack.add(singleServerToHack)
+    serversToHack = new Map()
+    serversToHack.set(singleServerToHack.hostname, singleServerToHack)
   } else {
     serversToHack = getHackableServers(g)
   }
-  g.ns.killall(hostNameToHackOn)
-  await g.ns.scp('simple.js', hostNameToHackOn)
-  const maxRam = g.ns.getServerMaxRam(hostNameToHackOn)
+  g.ns.killall(serverToHackOn.hostname)
+  await g.ns.scp('simple.js', serverToHackOn.hostname)
+  const maxRam = g.ns.getServerMaxRam(serverToHackOn.hostname)
   if (maxRam == 0) {
-    g.logf("[%s] Can't hack on this server. It has no ram.", hostNameToHackOn)
+    g.logf(
+      "[%s][%s] Can't hack on this server. It has no ram.",
+      serverToHackOn.organizationName,
+      serverToHackOn.hostname
+    )
     return
   }
-  const ramCost = g.ns.getScriptRam('simple.js', hostNameToHackOn)
+  const ramCost = g.ns.getScriptRam('simple.js', serverToHackOn.hostname)
   const instances = maxRam / ramCost
   const instancesPerServerToHack = instances / serversToHack.size
   g.logf(
-    '[%s] Total instances: %i. Servers to hack: %i. Instances per server hack: %i',
-    hostNameToHackOn,
+    '[%s][%s] Total instances: %i. Servers to hack: %i. Instances per server hack: %i',
+    serverToHackOn.organizationName,
+    serverToHackOn.hostname,
     instances,
     serversToHack.size,
     instancesPerServerToHack
   )
-  for (const serverToHack of serversToHack) {
-    const pid = g.ns.exec('simple.js', hostNameToHackOn, instancesPerServerToHack, serverToHack.hostname)
+  for (const [_, serverToHack] of serversToHack.entries()) {
+    const pid = g.ns.exec('simple.js', serverToHackOn.hostname, instancesPerServerToHack, serverToHack.hostname)
     if (pid == 0) {
       g.logf(
-        "[%s] Attempted to run %i to hack server %s, but couldn't.",
-        hostNameToHackOn,
+        "[%s][%s] Attempted to run %i to hack server %s, but couldn't.",
+        serverToHackOn.organizationName,
+        serverToHackOn.hostname,
         instancesPerServerToHack,
         serverToHack.hostname
       )
       break
     }
   }
+}
+
+/**
+ * @callback isPortOpen
+ * @param {Server} server
+ * @returns {boolean} true if port opened
+ */
+/**
+ * @callback runOpenPortProgram
+ * @param {String} hostname
+ */
+/**
+ * @param {Global} g
+ * @param {Server} server
+ * @param {runOpenPortProgram} runOpenPortProgram
+ * @param {isPortOpen} isPortOpen
+ * @param {Boolean} logErrors
+ * @param {String} name
+ */
+export function openPort(g, server, runOpenPortProgram, isPortOpen, name, logErrors = true) {
+  if (server.numOpenPortsRequired > server.openPortCount && !isPortOpen(server)) {
+    try {
+      runOpenPortProgram(server.hostname)
+      g.logf('[%s][%s] Opened port using %s.exe', server.organizationName, server.hostname, name) // TODO: Why does runOpenPortProgram.name not work?
+    } catch (e) {
+      if (logErrors) g.logf("[%s][%s] Don't have %s.exe installed", server.organizationName, server.hostname, name) // TODO: Why does runOpenPortProgram.name not work?
+    }
+  }
+}
+
+/**
+ * @param {Global} g
+ * @param {Server} server
+ * @param {Boolean} logErrors
+ * @returns {Boolean} true if server was nuked
+ */
+export function nukeServer(g, server, logErrors = true) {
+  if (server.numOpenPortsRequired > server.openPortCount) {
+    openPort(g, server, g.ns.brutessh, (s) => s.sshPortOpen, 'BruteSSH', logErrors)
+    openPort(g, server, g.ns.ftpcrack, (s) => s.ftpPortOpen, 'FTPCrack', logErrors)
+    openPort(g, server, g.ns.relaysmtp, (s) => s.smtpPortOpen, 'RelaySMTP', logErrors)
+    openPort(g, server, g.ns.sqlinject, (s) => s.sqlPortOpen, 'SQLInject', logErrors)
+    openPort(g, server, g.ns.httpworm, (s) => s.httpPortOpen, 'HTTPWorm', logErrors)
+    server = g.ns.getServer(server.hostname)
+  }
+  if (!server.hasAdminRights && server.openPortCount >= server.numOpenPortsRequired) {
+    g.ns.nuke(server.hostname)
+    g.logf('[%s][%s] Nuked successfully', server.organizationName, server.hostname)
+    server = g.ns.getServer(server.hostname)
+    return true
+  }
+  return false
 }

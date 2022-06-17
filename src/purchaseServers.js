@@ -23,7 +23,8 @@ export async function main(ns) {
     const cost = ns.getPurchasedServerCost(ram)
     if (ns.getServerMoneyAvailable('home') > cost) {
       const host = ns.purchaseServer('1337haxor', ram)
-      await hackOnServer(g, host)
+      const server = ns.getServer(host)
+      await hackOnServer(g, server)
     } else {
       g.logf('Cannot afford a new server with %iGB of ram. It costs $%i. Waiting 5s before trying again...', ram, cost)
       ns.sleep(5000)
