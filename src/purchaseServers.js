@@ -12,7 +12,7 @@ export async function main(ns) {
   // ns.tail()
   const serverLimit = ns.getPurchasedServerLimit()
   let ram = calcBestRam(g, serverLimit)
-  if (ram < 256) ram = 256
+  if (!ram || ram < 256) ram = 256
   g.logf(
     'Will attempt to buy %i servers with %iGB of ram. Each costing $%i',
     serverLimit - ns.getPurchasedServers().length,
@@ -27,7 +27,7 @@ export async function main(ns) {
       await hackOnServer(g, server)
     } else {
       g.logf('Cannot afford a new server with %iGB of ram. It costs $%i. Waiting 5s before trying again...', ram, cost)
-      ns.sleep(5000)
+      await ns.sleep(5000)
     }
   }
 }

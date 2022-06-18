@@ -86,17 +86,23 @@ export async function hackOnServer(g, serverToHackOn, singleServerToHack) {
     return
   }
   const ramCost = g.ns.getScriptRam('simple.js', serverToHackOn.hostname)
-  const instances = maxRam / ramCost
-  const instancesPerServerToHack = instances / serversToHack.size
+  const instances = (maxRam / ramCost) | 0
+  const instancesPerServerToHack = (instances / serversToHack.size) | 0
+  const leftOverInstances = instances - instancesPerServerToHack * serversToHack.size
   g.logf(
-    '[%s][%s] Total instances: %i. Servers to hack: %i. Instances per server hack: %i',
+    '[%s][%s] Total instances: %i. Servers to hack: %i. Instances per server hack: %i. Leftover %i',
     serverToHackOn.organizationName,
     serverToHackOn.hostname,
     instances,
     serversToHack.size,
-    instancesPerServerToHack
+    instancesPerServerToHack,
+    leftOverInstances
   )
+  /** @type {Server=} */
+  let highestDifficultyServer
   for (const [_, serverToHack] of serversToHack.entries()) {
+    if (!highestDifficultyServer || highestDifficultyServer.baseDifficulty < serverToHack.baseDifficulty)
+      highestDifficultyServer = serverToHack
     const pid = g.ns.exec('simple.js', serverToHackOn.hostname, instancesPerServerToHack, serverToHack.hostname)
     if (pid == 0) {
       g.logf(
@@ -108,6 +114,9 @@ export async function hackOnServer(g, serverToHackOn, singleServerToHack) {
       )
       break
     }
+  }
+  if (highestDifficultyServer && leftOverInstances > 0) {
+    g.ns.exec('simple.js', serverToHackOn.hostname, leftOverInstances, highestDifficultyServer.hostname, 'leftover')
   }
 }
 

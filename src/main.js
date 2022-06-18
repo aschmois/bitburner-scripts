@@ -12,7 +12,7 @@ export async function main(ns, killall = ns.args[0] || false) {
     if (server.hostname == 'home') continue
     if (server.purchasedByPlayer) {
       g.logf('[%s][%s] Custom server with %iGB of ram', server.organizationName, server.hostname, server.maxRam)
-      if (killall || server.ramUsed == 0) await hackOnServer(g, server)
+      if (killall) await hackOnServer(g, server)
     } else {
       g.logf(
         '[%s][%s] Root %t. Backdoor: %t. Ports Needed: %i. Ports Opened: %i. Hacking Needed: %i',
@@ -30,7 +30,7 @@ export async function main(ns, killall = ns.args[0] || false) {
         continue
       }
       if (isHackable(g, server)) {
-        if (killall || server.ramUsed == 0) await hackOnServer(g, server, server)
+        if (killall) await hackOnServer(g, server, server)
       }
     }
   }
