@@ -33,6 +33,19 @@ export function isHackable(g, server) {
 
 /**
  * @param {Global} g
+ * @param {Server} server
+ * @returns {Boolean} true if server can be hacked and has money to hack
+ */
+export function canBeHackedOn(g, server) {
+  return (
+    server.hasAdminRights &&
+    server.maxRam > 0 &&
+    (server.purchasedByPlayer || server.moneyMax == 0 || server.requiredHackingSkill > g.ns.getHackingLevel())
+  )
+}
+
+/**
+ * @param {Global} g
  * @param {Map<String,Server>} servers defaults to all servers
  * @returns {Map<String,Server>}
  */
@@ -99,15 +112,17 @@ export async function hackOnServer(g, serverToHackOn, singleServerToHack) {
   for (const [_, serverToHack] of serversToHack.entries()) {
     if (!highestDifficultyServer || highestDifficultyServer.baseDifficulty < serverToHack.baseDifficulty)
       highestDifficultyServer = serverToHack
-    const pid = g.ns.exec('simple.js', serverToHackOn.hostname, instancesPerServerToHack, serverToHack.hostname)
-    if (pid == 0) {
-      g.slogf(
-        serverToHackOn,
-        "Attempted to run %s to hack server %s, but couldn't.",
-        instancesPerServerToHack.toLocaleString(),
-        serverToHack.hostname
-      )
-      break
+    if (instancesPerServerToHack > 0) {
+      const pid = g.ns.exec('simple.js', serverToHackOn.hostname, instancesPerServerToHack, serverToHack.hostname)
+      if (pid == 0) {
+        g.slogf(
+          serverToHackOn,
+          "Attempted to run %s to hack server %s, but couldn't.",
+          instancesPerServerToHack.toLocaleString(),
+          serverToHack.hostname
+        )
+        break
+      }
     }
   }
   if (highestDifficultyServer && leftOverInstances > 0) {
@@ -146,7 +161,7 @@ export function openPort(g, server, runOpenPortProgram, isPortOpen, name, logSuc
 
 /**
  * @param {Global} g
- * @param {Server} server
+ * @param {Server} server Note: the server will be mutated to the latest value
  * @param {Boolean} logSuccess
  * @param {Boolean} logErrors
  * @returns {Boolean} true if server was nuked

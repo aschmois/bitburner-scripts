@@ -1,4 +1,4 @@
-import { scanForServers, hackOnServer, isHackable, nukeServer } from './utils.js'
+import { scanForServers, hackOnServer, isHackable, nukeServer, canBeHackedOn } from './utils.js'
 import { Global } from './global.js'
 
 /** @type {Global} */
@@ -16,15 +16,14 @@ export async function main(ns) {
     const servers = scanForServers(g)
     for (const [_, server] of servers.entries()) {
       if (server.hostname == 'home') continue
-      if (server.purchasedByPlayer) {
-        if (a.killall || server.ramUsed == 0) await hackOnServer(g, server)
-      } else {
-        nukeServer(g, server, false, false)
-        if (!server.hasAdminRights) {
-          continue
-        }
-        if (isHackable(g, server) && (a.killall || server.ramUsed == 0)) {
-          await hackOnServer(g, server, server)
+      if (!server.hasAdminRights) {
+        if (!nukeServer(g, server, false, false)) continue
+      }
+      if (a.killall || server.ramUsed == 0) {
+        if (isHackable(g, server)) {
+          await hackOnServer(g, server, server) // hack itself
+        } else if (canBeHackedOn(g, server)) {
+          await hackOnServer(g, server) // hack others
         }
       }
     }
