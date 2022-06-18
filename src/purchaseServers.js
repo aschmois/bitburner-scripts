@@ -7,12 +7,15 @@ let g
 /**
  * @param {NS} ns
  **/
-export async function main(ns) {
+export async function main(ns, deleteServers = ns.args[0] || false) {
   g = new Global({ ns, printOnTerminal: false, logEnabled: true })
   // ns.tail()
   const serverLimit = ns.getPurchasedServerLimit()
   let ram = calcBestRam(g, serverLimit)
   if (!ram || ram < 256) ram = 256
+  if (deleteServers) {
+    deletePurchasedServers(ram)
+  }
   g.logf(
     'Will attempt to buy %i servers with %iGB of ram. Each costing $%i',
     serverLimit - ns.getPurchasedServers().length,
@@ -53,53 +56,17 @@ function calcBestRam(g, numServers) {
   return ramList[affordableRamList.length - 1]
 }
 
-// const totalServers = ns.getPurchasedServers().length + numServers
-// const maxServers = (ns.getPurchasedServerLimit() < totalServers) ? ns.getPurchasedServerLimit() : totalServers
-
-// if (totalServers > ns.getPurchasedServerLimit()) {
-// 	if (await ns.prompt('The number of servers requested is not available. Delete existing servers with the smallest ram to make room?')) {
-// 		deletePurchasedServers(ns, totalServers - ns.getPurchasedServerLimit(), ram)
-// 			.forEach(name => {
-// 				if (ns.getServerMoneyAvailable('home') > ns.getPurchasedServerCost(ram)) {
-// 					ns.purchaseServer(name, ram)
-// 				}
-// 			})
-
-// 		while (ns.getPurchasedServers().length < maxServers) {
-// 			if (ns.getServerMoneyAvailable('home') > ns.getPurchasedServerCost(ram)) {
-// 				let host = serverNameTemplate + ns.getPurchasedServers().length
-// 				ns.purchaseServer(host, ram)
-// 			}
-// 		}
-// 	}
-// } else {
-// 	while (ns.getPurchasedServers().length < maxServers) {
-// 		if (ns.getServerMoneyAvailable('home') > ns.getPurchasedServerCost(ram)) {
-// 			let host = serverNameTemplate + ns.getPurchasedServers().length
-// 			ns.purchaseServer(host, ram)
-// 		}
-// 	}
-// }
-
-// /**
-//  * @param {NS} ns
-//  * @param {number} numServers
-//  * @param {number} newRam
-//  * @returns {string[]}
-//  **/
-// function deletePurchasedServers(ns, numServers, newRam) {
-// 	let serverNames = []
-// 	let servers = ns.getPurchasedServers()
-// 		.map(server => ({ 'name': server, 'ram': ns.getServerMaxRam(server) }))
-// 		.sort((a, b) => a.ram - b.ram)
-// 		.forEach((server, index) => {
-// 			if (ns.getServerMaxRam(server.name) >= newRam) {
-// 				return
-// 			} else if (index < numServers) {
-// 				ns.killall(server.name)
-// 				ns.deleteServer(server.name)
-// 				return serverNames.push(server.name)
-// 			}
-// 		})
-// 	return serverNames
-// }
+/**
+ * @param {number} newRam
+ **/
+function deletePurchasedServers(newRam) {
+  const purchasedServers = g.ns.getPurchasedServers()
+  for (const hostname of purchasedServers) {
+    const currentRam = g.ns.getServerMaxRam(hostname)
+    if (currentRam < newRam) {
+      g.logf('Deleting server %s with %iGB to be replaced with a server with %iGB', hostname, currentRam, newRam)
+      g.ns.killall(hostname)
+      g.ns.deleteServer(hostname)
+    }
+  }
+}
