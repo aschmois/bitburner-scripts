@@ -67,6 +67,7 @@ export function getServersThatNeedBackdoor(g, servers = scanForServers(g)) {
  * @param {Server=} singleServerToHack If undefined will hack all available hackable servers
  */
 export async function hackOnServer(g, serverToHackOn, singleServerToHack) {
+  /** @type {Map<String, Server>} */
   let serversToHack
   if (singleServerToHack) {
     serversToHack = new Map()
@@ -78,25 +79,20 @@ export async function hackOnServer(g, serverToHackOn, singleServerToHack) {
   await g.ns.scp('simple.js', serverToHackOn.hostname)
   const maxRam = g.ns.getServerMaxRam(serverToHackOn.hostname)
   if (maxRam == 0) {
-    g.logf(
-      "[%s][%s] Can't hack on this server. It has no ram.",
-      serverToHackOn.organizationName,
-      serverToHackOn.hostname
-    )
+    g.slogf(serverToHackOn, "Can't hack on this server. It has no ram.")
     return
   }
   const ramCost = g.ns.getScriptRam('simple.js', serverToHackOn.hostname)
   const instances = (maxRam / ramCost) | 0
   const instancesPerServerToHack = (instances / serversToHack.size) | 0
   const leftOverInstances = instances - instancesPerServerToHack * serversToHack.size
-  g.logf(
-    '[%s][%s] Total instances: %i. Servers to hack: %i. Instances per server hack: %i. Leftover %i',
-    serverToHackOn.organizationName,
-    serverToHackOn.hostname,
-    instances,
-    serversToHack.size,
-    instancesPerServerToHack,
-    leftOverInstances
+  g.slogf(
+    serverToHackOn,
+    'Total instances: %s. Servers to hack: %s. Instances per server hack: %s. Leftover %s',
+    instances.toLocaleString(),
+    serversToHack.size.toLocaleString(),
+    instancesPerServerToHack.toLocaleString(),
+    leftOverInstances.toLocaleString()
   )
   /** @type {Server=} */
   let highestDifficultyServer
@@ -105,11 +101,10 @@ export async function hackOnServer(g, serverToHackOn, singleServerToHack) {
       highestDifficultyServer = serverToHack
     const pid = g.ns.exec('simple.js', serverToHackOn.hostname, instancesPerServerToHack, serverToHack.hostname)
     if (pid == 0) {
-      g.logf(
-        "[%s][%s] Attempted to run %i to hack server %s, but couldn't.",
-        serverToHackOn.organizationName,
-        serverToHackOn.hostname,
-        instancesPerServerToHack,
+      g.slogf(
+        serverToHackOn,
+        "Attempted to run %s to hack server %s, but couldn't.",
+        instancesPerServerToHack.toLocaleString(),
         serverToHack.hostname
       )
       break
@@ -134,16 +129,17 @@ export async function hackOnServer(g, serverToHackOn, singleServerToHack) {
  * @param {Server} server
  * @param {runOpenPortProgram} runOpenPortProgram
  * @param {isPortOpen} isPortOpen
+ * @param {Boolean} logSuccess
  * @param {Boolean} logErrors
  * @param {String} name
  */
-export function openPort(g, server, runOpenPortProgram, isPortOpen, name, logErrors = true) {
+export function openPort(g, server, runOpenPortProgram, isPortOpen, name, logSuccess = true, logErrors = true) {
   if (server.numOpenPortsRequired > server.openPortCount && !isPortOpen(server)) {
     try {
       runOpenPortProgram(server.hostname)
-      g.logf('[%s][%s] Opened port using %s.exe', server.organizationName, server.hostname, name) // TODO: Why does runOpenPortProgram.name not work?
+      if (logSuccess) g.slogf(server, 'Opened port using %s.exe', name) // TODO: Why does runOpenPortProgram.name not work?
     } catch (e) {
-      if (logErrors) g.logf("[%s][%s] Don't have %s.exe installed", server.organizationName, server.hostname, name) // TODO: Why does runOpenPortProgram.name not work?
+      if (logErrors) g.slogf(server, "Don't have %s.exe installed", name) // TODO: Why does runOpenPortProgram.name not work?
     }
   }
 }
@@ -151,21 +147,22 @@ export function openPort(g, server, runOpenPortProgram, isPortOpen, name, logErr
 /**
  * @param {Global} g
  * @param {Server} server
+ * @param {Boolean} logSuccess
  * @param {Boolean} logErrors
  * @returns {Boolean} true if server was nuked
  */
-export function nukeServer(g, server, logErrors = true) {
+export function nukeServer(g, server, logSuccess = true, logErrors = true) {
   if (server.numOpenPortsRequired > server.openPortCount) {
-    openPort(g, server, g.ns.brutessh, (s) => s.sshPortOpen, 'BruteSSH', logErrors)
-    openPort(g, server, g.ns.ftpcrack, (s) => s.ftpPortOpen, 'FTPCrack', logErrors)
-    openPort(g, server, g.ns.relaysmtp, (s) => s.smtpPortOpen, 'RelaySMTP', logErrors)
-    openPort(g, server, g.ns.sqlinject, (s) => s.sqlPortOpen, 'SQLInject', logErrors)
-    openPort(g, server, g.ns.httpworm, (s) => s.httpPortOpen, 'HTTPWorm', logErrors)
+    openPort(g, server, g.ns.brutessh, (s) => s.sshPortOpen, 'BruteSSH', logSuccess, logErrors)
+    openPort(g, server, g.ns.ftpcrack, (s) => s.ftpPortOpen, 'FTPCrack', logSuccess, logErrors)
+    openPort(g, server, g.ns.relaysmtp, (s) => s.smtpPortOpen, 'RelaySMTP', logSuccess, logErrors)
+    openPort(g, server, g.ns.sqlinject, (s) => s.sqlPortOpen, 'SQLInject', logSuccess, logErrors)
+    openPort(g, server, g.ns.httpworm, (s) => s.httpPortOpen, 'HTTPWorm', logSuccess, logErrors)
     server = g.ns.getServer(server.hostname)
   }
   if (!server.hasAdminRights && server.openPortCount >= server.numOpenPortsRequired) {
     g.ns.nuke(server.hostname)
-    g.logf('[%s][%s] Nuked successfully', server.organizationName, server.hostname)
+    if (logSuccess) g.slogf(server, 'Nuked successfully')
     server = g.ns.getServer(server.hostname)
     return true
   }

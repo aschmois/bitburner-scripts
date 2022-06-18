@@ -22,6 +22,8 @@ export class Global {
      * @type {Boolean}
      */
     this.logEnabled = logEnabled
+    ns.disableLog('ALL')
+    ns.clearLog()
   }
 
   /**
@@ -40,8 +42,24 @@ export class Global {
   }
 
   /**
+   * @param {Server} server
+   * @param {String} format
    * @param {...*} args
    * @see NS.printf
+   */
+  slogf(server, format, ...args) {
+    if (this.logEnabled) {
+      if (this.printOnTerminal) {
+        this.ns.tprintf('[%s] ' + format, server.hostname, ...args)
+      } else {
+        this.ns.printf('[%s] ' + format, server.hostname, ...args)
+      }
+    }
+  }
+
+  /**
+   * @param {...*} args
+   * @see NS.print
    */
   log(...args) {
     if (this.logEnabled) {

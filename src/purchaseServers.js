@@ -9,7 +9,6 @@ let g
  **/
 export async function main(ns, deleteServers = ns.args[0] || false) {
   g = new Global({ ns, printOnTerminal: false, logEnabled: true })
-  // ns.tail()
   const serverLimit = ns.getPurchasedServerLimit()
   let ram = calcBestRam(g, serverLimit)
   if (!ram || ram < 256) ram = 256
@@ -17,10 +16,10 @@ export async function main(ns, deleteServers = ns.args[0] || false) {
     deletePurchasedServers(ram)
   }
   g.logf(
-    'Will attempt to buy %i servers with %iGB of ram. Each costing $%i',
-    serverLimit - ns.getPurchasedServers().length,
-    ram,
-    ns.getPurchasedServerCost(ram)
+    'Will attempt to buy %s servers with %sGB of ram. Each costing $%s',
+    (serverLimit - ns.getPurchasedServers().length).toLocaleString(),
+    ram.toLocaleString(),
+    ns.getPurchasedServerCost(ram).toLocaleString()
   )
   while (ns.getPurchasedServers().length < serverLimit) {
     const cost = ns.getPurchasedServerCost(ram)
@@ -28,8 +27,13 @@ export async function main(ns, deleteServers = ns.args[0] || false) {
       const host = ns.purchaseServer('1337haxor', ram)
       const server = ns.getServer(host)
       await hackOnServer(g, server)
+      await ns.sleep(10)
     } else {
-      g.logf('Cannot afford a new server with %iGB of ram. It costs $%i. Waiting 5s before trying again...', ram, cost)
+      g.logf(
+        'Cannot afford a new server with %sGB of ram. It costs $%s. Waiting 5s before trying again...',
+        ram.toLocaleString(),
+        cost.toLocaleString()
+      )
       await ns.sleep(5000)
     }
   }
@@ -49,7 +53,6 @@ function calcBestRam(g, numServers) {
     ramList.push(result)
     i++
   }
-  g.log(ramList)
   const affordableRamList = ramList.filter(
     (ram) => numServers * g.ns.getPurchasedServerCost(ram) <= g.ns.getServerMoneyAvailable('home')
   )
@@ -64,7 +67,12 @@ function deletePurchasedServers(newRam) {
   for (const hostname of purchasedServers) {
     const currentRam = g.ns.getServerMaxRam(hostname)
     if (currentRam < newRam) {
-      g.logf('Deleting server %s with %iGB to be replaced with a server with %iGB', hostname, currentRam, newRam)
+      g.logf(
+        'Deleting server %s with %sGB to be replaced with a server with %sGB',
+        hostname,
+        currentRam.toLocaleString(),
+        newRam.toLocaleString()
+      )
       g.ns.killall(hostname)
       g.ns.deleteServer(hostname)
     }

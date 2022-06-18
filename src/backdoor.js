@@ -11,15 +11,14 @@ export async function main(ns, killall = ns.args[0] || false) {
 
   for (const [_, server] of serversThatNeedBackdoor.entries()) {
     if (!server.purchasedByPlayer) {
-      nukeServer(g, server, false)
+      nukeServer(g, server, true, false)
       if (server.hasAdminRights && ns.getHackingLevel() >= server.requiredHackingSkill) {
-        g.logf(
-          '[%s][%s] Max Money: %i. Base Difficulty: %i. Max RAM %iGB.',
-          server.organizationName,
-          server.hostname,
-          server.moneyMax,
+        g.slogf(
+          server,
+          'Max Money: %s. Base Difficulty: %i. Max RAM %sGB.',
+          server.moneyMax.toLocaleString(),
           server.baseDifficulty,
-          server.maxRam
+          server.maxRam.toLocaleString()
         )
       }
     }
