@@ -35,11 +35,11 @@ export async function main(ns: NS, deleteServers = ns.args[0] || false) {
 }
 
 function calcBestRam(g: Global, numServers: number): number {
-  let ramList = []
+  const ramList = []
 
   let i = 1
   while (ramList.length < 20) {
-    let result = Math.pow(2, i)
+    const result = Math.pow(2, i)
     ramList.push(result)
     i++
   }

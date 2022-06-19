@@ -1,3 +1,3 @@
 {
-  "recommendations": ["bitburner.bitburner-vscode-integration", "esbenp.prettier-vscode"]
+  "recommendations": ["bitburner.bitburner-vscode-integration", "esbenp.prettier-vscode", "dbaeumer.vscode-eslint"]
 }

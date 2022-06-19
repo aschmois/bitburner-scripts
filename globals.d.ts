@@ -1,5 +1,7 @@
+/* eslint-disable */
 // Copied from https://github.com/danielyxie/bitburner/blob/6f017bf4f60cbe264556456c69450d7a160856fd/src/ScriptEditor/NetscriptDefinitions.d.ts
 // Replaced the `export` keyword with `declare` so vscode can use the definitions
+// @ts-ignore
 /**
  * @public
  */

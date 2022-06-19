@@ -11,7 +11,7 @@ export async function main(ns: NS) {
   g = new Global({ ns, printOnTerminal: a.killall, logEnabled: true })
   while (true) {
     const servers = scanForServers(g)
-    for (const [_, server] of servers.entries()) {
+    for (const [_hostname, server] of servers.entries()) {
       if (server.hostname == 'home') continue
       if (!server.hasAdminRights) {
         if (!nukeServer(g, server, false, false)) continue

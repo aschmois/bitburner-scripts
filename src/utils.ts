@@ -34,7 +34,7 @@ export function canBeHackedOn(g: Global, server: Server): boolean {
 
 export function getHackableServers(g: Global, servers: Map<string, Server> = scanForServers(g)): Map<string, Server> {
   const hackableServers = new Map()
-  for (const [_, server] of servers.entries()) {
+  for (const [_hostnam, server] of servers.entries()) {
     if (isHackable(g, server)) {
       hackableServers.set(server.hostname, server)
     }
@@ -47,7 +47,7 @@ export function getServersThatNeedBackdoor(
   servers: Map<string, Server> = scanForServers(g)
 ): Map<string, Server> {
   const needBackdoor = new Map()
-  for (const [_, server] of servers.entries()) {
+  for (const [_hostname, server] of servers.entries()) {
     if (!server.backdoorInstalled) {
       needBackdoor.set(server.hostname, server)
     }
@@ -59,7 +59,7 @@ export async function hackOnServer(
   g: Global,
   serverToHackOn: Server,
   singleServerToHack: Server | undefined = undefined,
-  logErrors: boolean = true
+  logErrors = true
 ) {
   let serversToHack: Map<string, Server>
   if (singleServerToHack) {
@@ -88,7 +88,7 @@ export async function hackOnServer(
     leftOverInstances.toLocaleString()
   )
   let highestDifficultyServer: Server | undefined
-  for (const [_, serverToHack] of serversToHack.entries()) {
+  for (const [_hostname, serverToHack] of serversToHack.entries()) {
     if (!highestDifficultyServer || highestDifficultyServer.baseDifficulty < serverToHack.baseDifficulty)
       highestDifficultyServer = serverToHack
     if (instancesPerServerToHack > 0) {
@@ -113,7 +113,7 @@ export async function hackOnServer(
 export function openPort(
   g: Global,
   server: Server,
-  runOpenPortProgram: (hostname: string) => any,
+  runOpenPortProgram: (hostname: string) => void,
   isPortOpen: (server: Server) => boolean,
   name: string,
   logSuccess: boolean = true,

@@ -7,7 +7,7 @@ export async function main(ns: NS) {
   // ns.tail()
   const serversThatNeedBackdoor = getServersThatNeedBackdoor(g)
 
-  for (const [_, server] of serversThatNeedBackdoor.entries()) {
+  for (const [_hostname, server] of serversThatNeedBackdoor.entries()) {
     if (!server.purchasedByPlayer) {
       nukeServer(g, server, true, false)
       if (server.hasAdminRights && ns.getHackingLevel() >= server.requiredHackingSkill) {
