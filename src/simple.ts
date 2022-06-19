@@ -1,5 +1,4 @@
-/** @param {NS} ns */
-export async function main(ns) {
+export async function main(ns: NS) {
   const host = '' + ns.args[0] || ns.getHostname()
   while (true) {
     while (true) {
