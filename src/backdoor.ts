@@ -1,10 +1,8 @@
 import { getServersThatNeedBackdoor, nukeServer } from './utils.js'
 import { Global } from './global.js'
 
-/** @type {Global} */
-let g
-/** @param {NS} ns */
-export async function main(ns, killall = ns.args[0] || false) {
+let g: Global
+export async function main(ns: NS) {
   g = new Global({ ns, printOnTerminal: true, logEnabled: true })
   // ns.tail()
   const serversThatNeedBackdoor = getServersThatNeedBackdoor(g)
