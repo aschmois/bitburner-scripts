@@ -58,7 +58,8 @@ export function getServersThatNeedBackdoor(
 export async function hackOnServer(
   g: Global,
   serverToHackOn: Server,
-  singleServerToHack: Server | undefined = undefined
+  singleServerToHack: Server | undefined = undefined,
+  logErrors: boolean = true
 ) {
   let serversToHack: Map<string, Server>
   if (singleServerToHack) {
@@ -71,7 +72,7 @@ export async function hackOnServer(
   await g.ns.scp('simple.js', serverToHackOn.hostname)
   const maxRam = g.ns.getServerMaxRam(serverToHackOn.hostname)
   if (maxRam == 0) {
-    g.slogf(serverToHackOn, "Can't hack on this server. It has no ram.")
+    if (logErrors) g.slogf(serverToHackOn, "Can't hack on this server. It has no ram.")
     return
   }
   const ramCost = g.ns.getScriptRam('simple.js', serverToHackOn.hostname)
@@ -93,12 +94,13 @@ export async function hackOnServer(
     if (instancesPerServerToHack > 0) {
       const pid = g.ns.exec('simple.js', serverToHackOn.hostname, instancesPerServerToHack, serverToHack.hostname)
       if (pid == 0) {
-        g.slogf(
-          serverToHackOn,
-          "Attempted to run %s to hack server %s, but couldn't.",
-          instancesPerServerToHack.toLocaleString(),
-          serverToHack.hostname
-        )
+        if (logErrors)
+          g.slogf(
+            serverToHackOn,
+            "Attempted to run %s to hack server %s, but couldn't.",
+            instancesPerServerToHack.toLocaleString(),
+            serverToHack.hostname
+          )
         break
       }
     }
