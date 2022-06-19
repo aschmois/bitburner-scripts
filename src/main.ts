@@ -1,12 +1,9 @@
 import { scanForServers, hackOnServer, isHackable, nukeServer, canBeHackedOn } from './utils.js'
 import { Global } from './global.js'
 
-/** @type {Global} */
-let g
-/** @param {NS} ns */
-export async function main(ns) {
-  /** @type {{killall: Boolean, tail: Boolean}}  */
-  const a = ns.flags([
+let g: Global
+export async function main(ns: NS) {
+  const a: { killall: boolean; tail: boolean } = ns.flags([
     ['killall', false],
     ['tail', false],
   ])
