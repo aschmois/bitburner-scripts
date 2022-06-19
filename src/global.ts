@@ -1,37 +1,18 @@
 /** @type Global */
 export class Global {
-  /**
-   * @param {Object} args
-   * @param {NS} args.ns
-   * @param {Boolean} args.printOnTerminal
-   * @param {Boolean} args.logEnabled
-   */
-  constructor({ ns, printOnTerminal, logEnabled }) {
-    /**
-     * @public
-     * @type {NS}
-     */
+  public ns: NS
+  public printOnTerminal: boolean
+  public logEnabled: boolean
+
+  constructor({ ns, printOnTerminal, logEnabled }: { ns: NS; printOnTerminal: boolean; logEnabled: boolean }) {
     this.ns = ns
-    /**
-     * @public
-     * @type {Boolean}
-     */
     this.printOnTerminal = printOnTerminal
-    /**
-     * @public
-     * @type {Boolean}
-     */
     this.logEnabled = logEnabled
     ns.disableLog('ALL')
     ns.clearLog()
   }
 
-  /**
-   * @param {String} format
-   * @param {...*} args
-   * @see NS.printf
-   */
-  logf(format, ...args) {
+  logf(format: string, ...args: any[]) {
     if (this.logEnabled) {
       if (this.printOnTerminal) {
         this.ns.tprintf(format, ...args)
@@ -41,13 +22,7 @@ export class Global {
     }
   }
 
-  /**
-   * @param {Server} server
-   * @param {String} format
-   * @param {...*} args
-   * @see NS.printf
-   */
-  slogf(server, format, ...args) {
+  slogf(server: Server, format: string, ...args: any[]) {
     if (this.logEnabled) {
       if (this.printOnTerminal) {
         this.ns.tprintf('[%s] ' + format, server.hostname, ...args)
@@ -57,11 +32,7 @@ export class Global {
     }
   }
 
-  /**
-   * @param {...*} args
-   * @see NS.print
-   */
-  log(...args) {
+  log(...args: any[]) {
     if (this.logEnabled) {
       if (this.printOnTerminal) {
         this.ns.tprint(...args)

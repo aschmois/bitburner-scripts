@@ -1,4 +1,4 @@
 {
-  "bitburner.scriptRoot": "./src/",
+  "bitburner.scriptRoot": "./out/",
   "editor.defaultFormatter": "esbenp.prettier-vscode"
 }
