@@ -1,12 +1,10 @@
 import { Global } from './global.js'
 
-/**
- * @param {Global} g
- * @param {Server} currentServer
- * @param {Map<String,Server>} servers Note: this is mutated
- * @returns {Map<String,Server>} all scannable hosts. Note: Same as the `servers` param
- */
-export function scanForServers(g, currentServer = g.ns.getServer('home'), servers = new Map()) {
+export function scanForServers(
+  g: Global,
+  currentServer: Server = g.ns.getServer('home'),
+  servers: Map<string, Server> = new Map<string, Server>()
+): Map<string, Server> {
   servers.set(currentServer.hostname, currentServer)
   const serverHostNames = g.ns.scan(currentServer.hostname)
 
@@ -17,12 +15,7 @@ export function scanForServers(g, currentServer = g.ns.getServer('home'), server
   return servers
 }
 
-/**
- * @param {Global} g
- * @param {Server} server
- * @returns {Boolean} true if server can be hacked and has money to hack
- */
-export function isHackable(g, server) {
+export function isHackable(g: Global, server: Server): boolean {
   return (
     !server.purchasedByPlayer &&
     server.hasAdminRights &&
@@ -31,12 +24,7 @@ export function isHackable(g, server) {
   )
 }
 
-/**
- * @param {Global} g
- * @param {Server} server
- * @returns {Boolean} true if server can be hacked and has money to hack
- */
-export function canBeHackedOn(g, server) {
+export function canBeHackedOn(g: Global, server: Server): boolean {
   return (
     server.hasAdminRights &&
     server.maxRam > 0 &&
@@ -44,12 +32,7 @@ export function canBeHackedOn(g, server) {
   )
 }
 
-/**
- * @param {Global} g
- * @param {Map<String,Server>} servers defaults to all servers
- * @returns {Map<String,Server>}
- */
-export function getHackableServers(g, servers = scanForServers(g)) {
+export function getHackableServers(g: Global, servers: Map<string, Server> = scanForServers(g)): Map<string, Server> {
   const hackableServers = new Map()
   for (const [_, server] of servers.entries()) {
     if (isHackable(g, server)) {
@@ -59,12 +42,10 @@ export function getHackableServers(g, servers = scanForServers(g)) {
   return hackableServers
 }
 
-/**
- * @param {Global} g
- * @param {Map<String,Server>} servers defaults to all servers
- * @returns {Map<String,Server>}
- */
-export function getServersThatNeedBackdoor(g, servers = scanForServers(g)) {
+export function getServersThatNeedBackdoor(
+  g: Global,
+  servers: Map<string, Server> = scanForServers(g)
+): Map<string, Server> {
   const needBackdoor = new Map()
   for (const [_, server] of servers.entries()) {
     if (!server.backdoorInstalled) {
@@ -74,16 +55,14 @@ export function getServersThatNeedBackdoor(g, servers = scanForServers(g)) {
   return needBackdoor
 }
 
-/**
- * @param {Global} g
- * @param {Server} serverToHackOn
- * @param {Server=} singleServerToHack If undefined will hack all available hackable servers
- */
-export async function hackOnServer(g, serverToHackOn, singleServerToHack) {
-  /** @type {Map<String, Server>} */
-  let serversToHack
+export async function hackOnServer(
+  g: Global,
+  serverToHackOn: Server,
+  singleServerToHack: Server | undefined = undefined
+) {
+  let serversToHack: Map<string, Server>
   if (singleServerToHack) {
-    serversToHack = new Map()
+    serversToHack = new Map<string, Server>()
     serversToHack.set(singleServerToHack.hostname, singleServerToHack)
   } else {
     serversToHack = getHackableServers(g)
@@ -107,8 +86,7 @@ export async function hackOnServer(g, serverToHackOn, singleServerToHack) {
     instancesPerServerToHack.toLocaleString(),
     leftOverInstances.toLocaleString()
   )
-  /** @type {Server=} */
-  let highestDifficultyServer
+  let highestDifficultyServer: Server | undefined
   for (const [_, serverToHack] of serversToHack.entries()) {
     if (!highestDifficultyServer || highestDifficultyServer.baseDifficulty < serverToHack.baseDifficulty)
       highestDifficultyServer = serverToHack
@@ -130,25 +108,15 @@ export async function hackOnServer(g, serverToHackOn, singleServerToHack) {
   }
 }
 
-/**
- * @callback isPortOpen
- * @param {Server} server
- * @returns {boolean} true if port opened
- */
-/**
- * @callback runOpenPortProgram
- * @param {String} hostname
- */
-/**
- * @param {Global} g
- * @param {Server} server
- * @param {runOpenPortProgram} runOpenPortProgram
- * @param {isPortOpen} isPortOpen
- * @param {Boolean} logSuccess
- * @param {Boolean} logErrors
- * @param {String} name
- */
-export function openPort(g, server, runOpenPortProgram, isPortOpen, name, logSuccess = true, logErrors = true) {
+export function openPort(
+  g: Global,
+  server: Server,
+  runOpenPortProgram: (hostname: string) => any,
+  isPortOpen: (server: Server) => boolean,
+  name: string,
+  logSuccess: boolean = true,
+  logErrors: boolean = true
+) {
   if (server.numOpenPortsRequired > server.openPortCount && !isPortOpen(server)) {
     try {
       runOpenPortProgram(server.hostname)
@@ -159,14 +127,7 @@ export function openPort(g, server, runOpenPortProgram, isPortOpen, name, logSuc
   }
 }
 
-/**
- * @param {Global} g
- * @param {Server} server Note: the server will be mutated to the latest value
- * @param {Boolean} logSuccess
- * @param {Boolean} logErrors
- * @returns {Boolean} true if server was nuked
- */
-export function nukeServer(g, server, logSuccess = true, logErrors = true) {
+export function nukeServer(g: Global, server: Server, logSuccess: boolean = true, logErrors: boolean = true): boolean {
   if (server.numOpenPortsRequired > server.openPortCount) {
     openPort(g, server, g.ns.brutessh, (s) => s.sshPortOpen, 'BruteSSH', logSuccess, logErrors)
     openPort(g, server, g.ns.ftpcrack, (s) => s.ftpPortOpen, 'FTPCrack', logSuccess, logErrors)
