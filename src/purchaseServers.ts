@@ -1,13 +1,8 @@
 import { hackOnServer } from './utils.js'
 import { Global } from './global.js'
 
-/** @type {Global} */
-let g
-
-/**
- * @param {NS} ns
- **/
-export async function main(ns, deleteServers = ns.args[0] || false) {
+let g: Global
+export async function main(ns: NS, deleteServers = ns.args[0] || false) {
   g = new Global({ ns, printOnTerminal: false, logEnabled: true })
   const serverLimit = ns.getPurchasedServerLimit()
   let ram = calcBestRam(g, serverLimit)
@@ -39,12 +34,7 @@ export async function main(ns, deleteServers = ns.args[0] || false) {
   }
 }
 
-/**
- * @param {Global} g
- * @param {number} numServers
- * @returns {number}
- **/
-function calcBestRam(g, numServers) {
+function calcBestRam(g: Global, numServers: number): number {
   let ramList = []
 
   let i = 1
@@ -59,10 +49,7 @@ function calcBestRam(g, numServers) {
   return ramList[affordableRamList.length - 1]
 }
 
-/**
- * @param {number} newRam
- **/
-function deletePurchasedServers(newRam) {
+function deletePurchasedServers(newRam: number) {
   const purchasedServers = g.ns.getPurchasedServers()
   for (const hostname of purchasedServers) {
     const currentRam = g.ns.getServerMaxRam(hostname)
