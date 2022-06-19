@@ -1,4 +1,3 @@
-/** @type Global */
 export class Global {
   public ns: NS
   public printOnTerminal: boolean
