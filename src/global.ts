@@ -32,6 +32,16 @@ export class Global {
     }
   }
 
+  slog(server: Server, ...args: any[]) {
+    if (this.logEnabled) {
+      if (this.printOnTerminal) {
+        this.ns.tprintf('[%s] %s', server.hostname, args)
+      } else {
+        this.ns.printf('[%s] %s', server.hostname, args)
+      }
+    }
+  }
+
   log(...args: any[]) {
     if (this.logEnabled) {
       if (this.printOnTerminal) {

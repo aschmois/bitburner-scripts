@@ -1,11 +1,11 @@
-import { getServersThatNeedBackdoor, nukeServer } from './utils.js'
+import { nukeServer, scanForServers } from './utils.js'
 import { Global } from './global.js'
 
 let g: Global
 export async function main(ns: NS) {
   g = new Global({ ns, printOnTerminal: true, logEnabled: true })
   // ns.tail()
-  const serversThatNeedBackdoor = getServersThatNeedBackdoor(g)
+  const serversThatNeedBackdoor = scanForServers(g, (_g, server) => server.backdoorInstalled)
 
   for (const [_hostname, server] of serversThatNeedBackdoor.entries()) {
     if (!server.purchasedByPlayer) {
