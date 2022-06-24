@@ -3,17 +3,18 @@ import { Global } from './global.js'
 
 let g: Global
 export async function main(ns: NS) {
-  g = new Global({ ns, printOnTerminal: true, logEnabled: true })
+  g = new Global({ ns, printOnTerminal: true })
   // ns.tail()
-  const serversThatNeedBackdoor = scanForServers(g, (_g, server) => server.backdoorInstalled)
+  const serversThatNeedBackdoor = scanForServers(g, (_g, server) => !server.backdoorInstalled)
 
   for (const [_hostname, server] of serversThatNeedBackdoor.entries()) {
     if (!server.purchasedByPlayer) {
-      nukeServer(g, server, true, false)
+      g.disableLog('openPort')
+      nukeServer(g, server)
       if (server.hasAdminRights && ns.getHackingLevel() >= server.requiredHackingSkill) {
-        g.slogf(
-          server,
-          'Max Money: %s. Base Difficulty: %i. Max RAM %sGB.',
+        g.printf(
+          '[%s] Max Money: %s. Base Difficulty: %i. Max RAM %sGB.',
+          server.hostname,
           server.moneyMax.toLocaleString(),
           server.baseDifficulty,
           server.maxRam.toLocaleString()

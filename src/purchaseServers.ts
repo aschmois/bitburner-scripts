@@ -1,57 +1,63 @@
 import { Global } from './global.js'
 
 let g: Global
-export async function main(ns: NS, deleteServers = ns.args[0] || false) {
-  g = new Global({ ns, printOnTerminal: false, logEnabled: true })
-  const serverLimit = ns.getPurchasedServerLimit()
-  while (ns.getPurchasedServers().length < serverLimit || deleteServers) {
-    let ram = calcBestRam(g, Math.max(1, serverLimit - ns.getPurchasedServers().length))
-    if (!ram || ram < 256) ram = 256
-    if (deleteServers) {
-      deleteWorstPurchasedServer(ram)
+export async function main(ns: NS) {
+  ns.tail()
+  g = new Global({ ns, printOnTerminal: false })
+  while (true) {
+    try {
+      const ram = calcBestRam()
+      if (!ram) continue // can't afford any server
+      if (!deleteWorstPurchasedServer(ram) && ram == g.ns.getPurchasedServerMaxRam()) break // didn't delete any servers and can afford max ram
+      const cost = ns.getPurchasedServerCost(ram)
+      try {
+        const hostname = ns.purchaseServer('1337haxor', ram)
+        if (hostname)
+          g.printf('Bought %s with %sGB of ram. It costed $%s.', hostname, ram.toLocaleString(), cost.toLocaleString())
+      } catch (e) {
+        g.printf(
+          "Couldn't buy a server with %sGB of ram. It costed $%s. Error: %s",
+          ram.toLocaleString(),
+          cost.toLocaleString(),
+          e
+        )
+      }
+    } finally {
+      await ns.sleep(1000)
     }
-    const cost = ns.getPurchasedServerCost(ram)
-    if (ns.getServerMoneyAvailable('home') > cost) {
-      const hostname = ns.purchaseServer('1337haxor', ram)
-      g.logf('Bought %s with %sGB of ram. It costed $%s.', hostname, ram.toLocaleString(), cost.toLocaleString())
-    }
-    await ns.sleep(5000)
   }
 }
 
-function calcBestRam(g: Global, numServers: number): number {
-  const ramList = []
-
-  let i = 1
-  while (ramList.length < 20) {
-    const result = Math.pow(2, i)
-    ramList.push(result)
-    i++
-  }
+function calcBestRam(): number | null {
+  const ramList = [256, 1024, 32768, 262144, g.ns.getPurchasedServerMaxRam()]
   const affordableRamList = ramList.filter(
-    (ram) => numServers * g.ns.getPurchasedServerCost(ram) <= g.ns.getServerMoneyAvailable('home')
+    (ram) => g.ns.getPurchasedServerCost(ram) <= g.ns.getServerMoneyAvailable('home')
   )
-  return ramList[affordableRamList.length - 1]
+  return affordableRamList ? ramList[affordableRamList.length - 1] : null
 }
 
-function deleteWorstPurchasedServer(newRam: number) {
-  let worstServer
-  let worstServerRam
+/**
+ * @param newRam The ram that will be purchased to replace this server
+ * @returns true if a server was deleted
+ */
+function deleteWorstPurchasedServer(newRam: number): boolean {
+  let worstServer: { hostname: string; ram: number } | undefined
   for (const hostname of g.ns.getPurchasedServers()) {
     const ram = g.ns.getServerMaxRam(hostname)
-    if (ram < newRam && (!worstServer || !worstServerRam || ram < worstServerRam)) {
-      worstServer = hostname
-      worstServerRam = ram
+    if (ram < newRam && (!worstServer || ram < worstServer.ram)) {
+      worstServer = { hostname, ram }
     }
   }
-  if (worstServer && worstServerRam) {
-    g.logf(
+  if (worstServer) {
+    g.printf(
       'Deleting server %s with %sGB to be replaced with a server with %sGB',
-      worstServer,
-      worstServerRam.toLocaleString(),
+      worstServer.hostname,
+      worstServer.ram.toLocaleString(),
       newRam.toLocaleString()
     )
-    g.ns.killall(worstServer)
-    g.ns.deleteServer(worstServer)
+    g.ns.killall(worstServer.hostname)
+    g.ns.deleteServer(worstServer.hostname)
+    return true
   }
+  return false
 }

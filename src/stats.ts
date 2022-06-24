@@ -1,5 +1,6 @@
 import { getWeightedServerValue, isHackable, scanForServers } from './utils.js'
 import { Global } from './global.js'
+import table from 'lib/text-table.js'
 
 let g: Global
 export async function main(ns: NS) {
@@ -9,18 +10,86 @@ export async function main(ns: NS) {
     ['c', false],
   ])
   if (a.tail) ns.tail()
-  g = new Global({ ns, printOnTerminal: a.terminal, logEnabled: true })
+  g = new Global({ ns, printOnTerminal: a.terminal })
   while (true) {
+    g.enableLog('scanForServers')
+    scanForServers(g, (g, s) => !s.purchasedByPlayer)
+    g.disableLog('scanForServers')
     const servers = scanForServers(g, isHackable)
     const values = []
     for (const [_hostname, _server] of servers.entries()) {
       values.push(getWeightedServerValue(g, _server))
     }
     values.sort((a, b) => a.value - b.value)
+    const txtTable = [
+      [
+        'hostname',
+        '$/s',
+        '*',
+        'threads',
+        '=',
+        't$/s',
+        '*',
+        'weight',
+        '+',
+        '$max/1b',
+        '=',
+        'value',
+        '|',
+        'chance',
+        'diff',
+        'lvl',
+        '$avail/$max',
+      ],
+      [
+        '--------',
+        '---',
+        '-',
+        '-------',
+        '-',
+        '----',
+        '-',
+        '------',
+        '-',
+        '-------',
+        '-',
+        '-----',
+        '-',
+        '------',
+        '----',
+        '---',
+        '-----------',
+      ],
+    ]
     for (const { log } of values) {
-      g.log(log)
+      const theoreticalMoneyPerS = log.moneyPerS * log.threads
+      txtTable.push([
+        log.server.hostname,
+        `${g.ns.nFormat(log.moneyPerS, '$0.00a')}/s`,
+        '*',
+        g.ns.nFormat(log.threads, '0,0'),
+        '=',
+        `${g.ns.nFormat(theoreticalMoneyPerS, '$0.00a')}/s`,
+        '*',
+        g.ns.nFormat(log.weight, '0.00a'),
+        '+',
+        g.ns.nFormat(log.server.moneyMax / 1000000000, '$0.00a'),
+        '=',
+        g.ns.nFormat(log.value, '0.00a'),
+        '|',
+        (log.chance * 100).toFixed(0) + '%',
+        g.ns.nFormat(log.server.baseDifficulty, '0,0'),
+        g.ns.nFormat(log.server.requiredHackingSkill, '0,0'),
+        g.ns.nFormat(log.server.moneyAvailable, '$0.00a') + '/' + g.ns.nFormat(log.server.moneyMax, '$0.00a'),
+      ])
     }
-    if (a.c) await ns.sleep(10000)
+    g.printf(
+      '%s',
+      table(txtTable, {
+        align: ['l', ...Array(txtTable[0].length - 1).fill('r')],
+      })
+    )
+    if (a.c) await ns.sleep(1000)
     else break
   }
 }

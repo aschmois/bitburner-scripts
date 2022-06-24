@@ -1,5 +1,9 @@
 import { Global } from './global.js'
 
+export function isHome(server: Server) {
+  return server.hostname === 'home'
+}
+
 export function scanForServers(
   g: Global,
   predicate: (g: Global, s: Server) => boolean = () => true,
@@ -10,10 +14,17 @@ export function scanForServers(
   const secondaryHostnames = g.ns.scan(primaryServer.hostname)
   if (primaryServer.hostname != 'home') {
     secondaryHostnames.shift() // The first scan result is the server right above it
-    if (predicate(g, primaryServer)) {
-      servers.set(primaryServer.hostname, primaryServer)
-      // g.logf('%s>%s', delimeter, primaryServer.hostname)
-    }
+  }
+  if (predicate(g, primaryServer)) {
+    servers.set(primaryServer.hostname, primaryServer)
+    g.printf_(
+      'scanForServers',
+      '%s>%s %t %i',
+      delimeter,
+      primaryServer.hostname,
+      primaryServer.hasAdminRights,
+      primaryServer.requiredHackingSkill
+    )
   }
   for (const secondaryHostname of secondaryHostnames) {
     if (secondaryHostname === primaryServer.hostname) continue
@@ -40,40 +51,41 @@ export function canBeHackedOn(g: Global, server: Server): boolean {
   )
 }
 
-export function getWeightedServerValue(g: Global, server: Server): { value: number; log: string } {
-  const moneyPerS = g.ns.hackAnalyze(server.hostname) / (g.ns.getHackTime(server.hostname) / 1000)
+export function getWeightedServerValue(g: Global, server: Server): { value: number; log: Stats } {
+  const moneyAvailable = g.ns.getServerMoneyAvailable(server.hostname)
+  const moneyPerS = (g.ns.hackAnalyze(server.hostname) * moneyAvailable) / (g.ns.getHackTime(server.hostname) / 1000)
+  let threads = g.ns.hackAnalyzeThreads(server.hostname, moneyAvailable)
+  if (!threads || threads === Infinity || isNaN(threads)) {
+    threads = 0
+  }
   const chance = g.ns.hackAnalyzeChance(server.hostname)
-  let weight = chance * 1000
+  let weight = chance
   // Prefer servers with higher chance to hack
-  if (chance > 0.5) weight += 100
-  if (chance > 0.8) weight += 200
-  if (chance === 1) weight += 500
-  const value = moneyPerS * weight
-  const log = `[${server.hostname}] $${moneyPerS.toFixed(4)}/s * ${weight.toLocaleString()} = ${value.toFixed(4)} | ${(
-    chance * 100
-  ).toFixed(
-    0
-  )}% ${server.baseDifficulty.toLocaleString()} $${server.moneyAvailable.toLocaleString()}/$${server.moneyMax.toLocaleString()}`
-  return { value, log } // TODO: Figure out the best value, running it as is makes it so that very easy servers are always done first. Might be fine? Needs more investigation.
+  if (chance > 0.5) weight += 0.1
+  if (chance > 0.8) weight += 0.2
+  if (chance === 1) weight += 0.5
+  const adjustment = server.moneyMax / 1000000000
+  const value = moneyPerS * threads * weight + adjustment
+  return { value, log: { moneyPerS, threads, weight, adjustment, value, chance, server } }
 }
 
 export function maximizeScriptExec(
   g: Global,
   hackingFrom: Server,
   script: Scripts,
-  hacking: Server,
+  hacking: Server = hackingFrom,
   max: number = Number.MAX_SAFE_INTEGER
 ): ScriptExecution | null {
-  if (g.ns.getRunningScript(script, hackingFrom.hostname) !== null) return null
   const instances = Math.min(getMaxInstances(g, hackingFrom, script), max)
   if (instances > 0) {
-    g.slogf(
-      hackingFrom,
-      'Executing %s/%s instances of %s on %s',
+    g.printf_(
+      'maximizeScriptExec',
+      'Executing %s/%s instances of %s on %s running on %s',
       instances.toLocaleString(),
       max === Number.MAX_SAFE_INTEGER ? Infinity.toLocaleString() : max.toLocaleString(),
       script,
-      hacking.hostname
+      hacking.hostname,
+      hackingFrom.hostname
     )
     const pid: PID = g.ns.exec(script, hackingFrom.hostname, instances, hacking.hostname, hackingFrom.hostname)
     if (pid !== 0) {
@@ -84,7 +96,8 @@ export function maximizeScriptExec(
 }
 
 export function getMaxInstances(g: Global, server: Server, script: Scripts): number {
-  const freeRam = g.ns.getServerMaxRam(server.hostname) - g.ns.getServerUsedRam(server.hostname)
+  let freeRam = g.ns.getServerMaxRam(server.hostname) - g.ns.getServerUsedRam(server.hostname)
+  if (isHome(server)) freeRam = freeRam * 0.9
   const ramCost = g.ns.getScriptRam(script, server.hostname)
   return Math.floor(freeRam / ramCost)
 }
@@ -97,12 +110,15 @@ export function getMaxHacks(g: Global, _server: Server) {
 
 export function getMaxGrows(g: Global, _server: Server) {
   const server = g.ns.getServer(_server.hostname)
+  if (server.moneyMax == server.moneyAvailable) return 0
   const max = g.ns.growthAnalyze(server.hostname, server.moneyMax)
   return Math.floor(max === Infinity ? 0 : max)
 }
 
 export function getMaxWeakens(g: Global, _server: Server) {
   const server = g.ns.getServer(_server.hostname)
+  if (g.ns.hackAnalyzeChance(server.hostname) === 1) return 0
+  if (server.hackDifficulty <= server.minDifficulty + 6) return 0
   const max = (server.hackDifficulty - server.minDifficulty - 5) / 0.05
   return Math.floor(max === Infinity ? 0 : max)
 }
@@ -156,20 +172,22 @@ export function findBestServerToHack(
   return null
 }
 
-export async function executeScripts(
+export function executeScripts(
   g: Global,
   server: Server,
-  runningScripts: RunningScripts
-): Promise<Array<ScriptExecution> | ScriptExecutionStatus> {
+  runningScripts: RunningScripts,
+  hackableServers: Servers
+): Array<ScriptExecution> | ScriptExecutionStatus {
   if (server.maxRam === 0) {
     return ScriptExecutionStatus.CantHackOnServer
   }
-  await g.ns.scp(Object.values(Scripts), server.hostname)
-  const bestServer = findBestServerToHack(g, runningScripts)
+  const bestServer = findBestServerToHack(g, runningScripts, hackableServers)
 
   // There isn't enough work to do with the amount of server capacity we have
-  if (!bestServer) return ScriptExecutionStatus.NoServersToHack
-
+  if (!bestServer) {
+    maximizeScriptExec(g, server, Scripts.Share)
+    return ScriptExecutionStatus.NoServersToHack
+  }
   const serverToHack = bestServer.serverToHack
   const runningCount = bestServer.runningCount
 
@@ -203,19 +221,6 @@ export async function executeScripts(
   }
 
   if (scriptExecutions.length > 0) {
-    g.slogf(
-      serverToHack,
-      '%sGrow %s/%s | %sWeaken %s/%s | %sHacked %s/%s',
-      runningGrows > maxGrows ? '!!' : '  ',
-      runningGrows,
-      maxGrows,
-      runningWeakens > maxWeakens ? '!!' : '  ',
-      runningWeakens,
-      maxWeakens,
-      runningHacks > maxHacks ? '!!' : '  ',
-      runningHacks,
-      maxHacks
-    )
     return scriptExecutions
   }
 
@@ -228,23 +233,21 @@ export function openPort(
   server: Server,
   runOpenPortProgram: (hostname: Hostname) => void,
   isPortOpen: (server: Server) => boolean,
-  name: string,
-  logSuccess: boolean = true,
-  logErrors: boolean = true
+  name: string
 ): Server {
   if (server.numOpenPortsRequired > server.openPortCount && !isPortOpen(server)) {
     try {
       runOpenPortProgram(server.hostname)
-      if (logSuccess) g.slogf(server, 'Opened port using %s.exe', name)
+      g.printf_('openPort', '[%s] Opened port using %s.exe', server.hostname, name)
       return g.ns.getServer(server.hostname)
     } catch (e) {
-      if (logErrors) g.slogf(server, "Don't have %s.exe installed", name)
+      g.printf_('openPort', "[%s] Don't have %s.exe installed", server.hostname, name)
     }
   }
   return server
 }
 
-export function nukeServer(g: Global, _server: Server, logSuccess: boolean = true, logErrors: boolean = true): Server {
+export function nukeServer(g: Global, _server: Server): Server {
   let server = _server
   const ports = [
     { runOpenPortProgram: g.ns.brutessh, isPortOpen: (s: Server) => s.sshPortOpen, name: 'BruteSSH' },
@@ -257,12 +260,12 @@ export function nukeServer(g: Global, _server: Server, logSuccess: boolean = tru
     if (server.openPortCount >= server.numOpenPortsRequired) {
       break
     }
-    server = openPort(g, server, port.runOpenPortProgram, port.isPortOpen, port.name, logSuccess, logErrors)
+    server = openPort(g, server, port.runOpenPortProgram, port.isPortOpen, port.name)
   }
   if (!server.hasAdminRights && server.openPortCount >= server.numOpenPortsRequired) {
     g.ns.nuke(server.hostname)
     server = g.ns.getServer(server.hostname)
-    if (logSuccess && server.hasAdminRights) g.slogf(server, 'Nuked successfully')
+    if (server.hasAdminRights) g.printf_('nukeServer', '[%s] Nuked successfully', server.hostname)
   }
   return server
 }
@@ -273,6 +276,15 @@ export type PID = number
 export type Hostname = string
 export type Servers = Map<Hostname, Server>
 export type RunningScripts = Map<Hostname, Map<PID, ScriptExecution>>
+export type Stats = {
+  moneyPerS: number
+  threads: number
+  weight: number
+  adjustment: number
+  value: number
+  chance: number
+  server: Server
+}
 
 export class ScriptExecution {
   public script: Scripts
@@ -294,6 +306,7 @@ export enum Scripts {
   Grow = '/hacking/grow.js',
   Hack = '/hacking/hack.js',
   Weaken = '/hacking/weaken.js',
+  Share = '/hacking/share.js',
 }
 
 export enum ScriptExecutionStatus {

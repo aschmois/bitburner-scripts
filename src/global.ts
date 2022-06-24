@@ -2,53 +2,48 @@
 export class Global {
   public ns: NS
   public printOnTerminal: boolean
-  public logEnabled: boolean
+  private disableFunctions: Set<string> = new Set()
 
-  constructor({ ns, printOnTerminal, logEnabled }: { ns: NS; printOnTerminal: boolean; logEnabled: boolean }) {
+  constructor({ ns, printOnTerminal }: { ns: NS; printOnTerminal: boolean }) {
     this.ns = ns
     this.printOnTerminal = printOnTerminal
-    this.logEnabled = logEnabled
     ns.disableLog('ALL')
     ns.clearLog()
   }
 
-  logf(format: string, ...args: any[]) {
-    if (this.logEnabled) {
-      if (this.printOnTerminal) {
-        this.ns.tprintf(format, ...args)
-      } else {
-        this.ns.printf(format, ...args)
-      }
+  enableLog(f: string) {
+    this.disableFunctions.delete(f)
+  }
+
+  disableLog(f: string) {
+    this.disableFunctions.add(f)
+  }
+
+  printf(format: string, ...args: any[]) {
+    if (this.printOnTerminal) {
+      this.ns.tprintf(format, ...args)
+    } else {
+      this.ns.printf(format, ...args)
     }
   }
 
-  slogf(server: Server, format: string, ...args: any[]) {
-    if (this.logEnabled) {
-      if (this.printOnTerminal) {
-        this.ns.tprintf('[%s] ' + format, server.hostname, ...args)
-      } else {
-        this.ns.printf('[%s] ' + format, server.hostname, ...args)
-      }
+  printf_(caller: string, format: string, ...args: any[]) {
+    if (this.disableFunctions.has(caller)) {
+      this.printf(format, ...args)
     }
   }
 
-  slog(server: Server, ...args: any[]) {
-    if (this.logEnabled) {
-      if (this.printOnTerminal) {
-        this.ns.tprintf('[%s] %s', server.hostname, args)
-      } else {
-        this.ns.printf('[%s] %s', server.hostname, args)
-      }
+  print(...args: any[]) {
+    if (this.printOnTerminal) {
+      this.ns.tprintf('%s', args)
+    } else {
+      this.ns.print('%s', args)
     }
   }
 
-  log(...args: any[]) {
-    if (this.logEnabled) {
-      if (this.printOnTerminal) {
-        this.ns.tprint(...args)
-      } else {
-        this.ns.print(...args)
-      }
+  print_(caller: string, ...args: any[]) {
+    if (this.disableFunctions.has(caller)) {
+      this.print(...args)
     }
   }
 }
