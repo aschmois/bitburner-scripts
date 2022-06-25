@@ -28,7 +28,7 @@ export class Global {
   }
 
   printf_(caller: string, format: string, ...args: any[]) {
-    if (this.disableFunctions.has(caller)) {
+    if (!this.disableFunctions.has(caller)) {
       this.printf(format, ...args)
     }
   }
@@ -42,7 +42,7 @@ export class Global {
   }
 
   print_(caller: string, ...args: any[]) {
-    if (this.disableFunctions.has(caller)) {
+    if (!this.disableFunctions.has(caller)) {
       this.print(...args)
     }
   }

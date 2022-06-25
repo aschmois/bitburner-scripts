@@ -19,11 +19,12 @@ export async function main(ns: NS) {
     ['optimize', false],
   ])
   if (a.tail) ns.tail()
+  g = new Global({ ns, printOnTerminal: a.terminal })
   if (a.optimize) {
     g.disableLog('openPort')
     g.disableLog('maximizeScriptExec')
+    g.disableLog('scanForServers')
   }
-  g = new Global({ ns, printOnTerminal: a.terminal })
   const runningScripts: RunningScripts = new Map()
   let optimizedServers = scanForServers(g)
   let optimizedHackableServers = scanForServers(g, isHackable)
