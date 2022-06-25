@@ -37,7 +37,7 @@ export class Global {
     if (this.printOnTerminal) {
       this.ns.tprintf('%s', args)
     } else {
-      this.ns.print('%s', args)
+      this.ns.print(...args)
     }
   }
 
