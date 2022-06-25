@@ -8,8 +8,14 @@ import {
   isHackable,
   Scripts,
   isHome,
+  getRunningCount,
+  getMaxWeakens,
+  getMaxGrows,
+  getMaxHacks,
+  ScriptExecutionStatus,
 } from './utils.js'
 import { Global } from './global.js'
+import table from 'lib/text-table.js'
 
 let g: Global
 export async function main(ns: NS) {
@@ -32,8 +38,8 @@ export async function main(ns: NS) {
   let loopNum = 0
   while (true) {
     loopNum++
-    if (loopNum === 100) {
-      // ~10s
+    if (loopNum >= 50) {
+      g.print('Scanning servers...')
       optimizedHackableServers = scanForServers(g, isHackable)
       optimizedServers = scanForServers(g)
       logRunningScripts(runningScripts)
@@ -59,15 +65,15 @@ export async function main(ns: NS) {
             runningScripts.set(scriptExecution.hacking.hostname, existingScriptRuns)
           }
         } else {
-          // Do nothing for now
-          // switch (scriptExecutions) {
-          //   case ScriptExecutionStatus.Busy:
-          //     // This is normal behavior. Don't spam the log with this
-          //     break
-          //   default:
-          //     g.slogf(server, 'Failed to execute scripts: %s', scriptExecutions.toString())
-          //     break
-          // }
+          const status = scriptExecutions
+          switch (status) {
+            case ScriptExecutionStatus.Busy:
+              // This is normal behavior. Don't spam the log with this
+              break
+            default:
+              g.printf('[%s] Failed to execute scripts: %s', server.hostname, status.toString())
+              break
+          }
         }
       }
     }
@@ -76,17 +82,58 @@ export async function main(ns: NS) {
 }
 
 function logRunningScripts(runningScripts: RunningScripts) {
-  // g.slogf(
-  //   serverToHack,
-  //   '%sGrow %s/%s | %sWeaken %s/%s | %sHacked %s/%s',
-  //   runningGrows > maxGrows ? '!!' : '  ',
-  //   runningGrows,
-  //   maxGrows,
-  //   runningWeakens > maxWeakens ? '!!' : '  ',
-  //   runningWeakens,
-  //   maxWeakens,
-  //   runningHacks > maxHacks ? '!!' : '  ',
-  //   runningHacks,
-  //   maxHacks
-  // )
+  const runningArray = []
+  const forcedArray = []
+  for (const [hostname, runningScriptExecutions] of runningScripts.entries()) {
+    const server = g.ns.getServer(hostname)
+    const { runningCount, forced } = getRunningCount(g, runningScriptExecutions)
+    if (runningCount.size > 0) {
+      const runningWeakens = runningCount.get(Scripts.Weaken) ?? 0
+      const maxWeakens = getMaxWeakens(g, server)
+      const runningGrows = runningCount.get(Scripts.Grow) ?? 0
+      const maxGrows = getMaxGrows(g, server)
+      const runningHacks = runningCount.get(Scripts.Hack) ?? 0
+      const maxHacks = getMaxHacks(g, server)
+      runningArray.push([
+        server.hostname,
+        `${runningGrows > maxGrows ? '!!' : ''}${g.ns.nFormat(runningGrows, '0,0')}/${g.ns.nFormat(maxGrows, '0,0')}`,
+        `${runningWeakens > maxWeakens ? '!!' : ''}${g.ns.nFormat(runningWeakens, '0,0')}/${g.ns.nFormat(
+          maxWeakens,
+          '0,0'
+        )}`,
+        `${runningHacks > maxHacks ? '!!' : ''}${g.ns.nFormat(runningHacks, '0,0')}/${g.ns.nFormat(maxHacks, '0,0')}`,
+      ])
+    }
+    if (forced.size > 0) {
+      forcedArray.push([
+        server.hostname,
+        g.ns.nFormat(forced.get(Scripts.Grow) ?? 0, '0,0'),
+        g.ns.nFormat(forced.get(Scripts.Weaken) ?? 0, '0,0'),
+        g.ns.nFormat(forced.get(Scripts.Hack) ?? 0, '0,0'),
+        g.ns.nFormat(forced.get(Scripts.Share) ?? 0, '0,0'),
+      ])
+    }
+  }
+  if (runningArray.length > 0) {
+    const txtTable = [['Hostname', 'Grow', 'Weaken', 'Hack'], ['--------', '----', '------', '----'], ...runningArray]
+    g.printf(
+      '%s',
+      table(txtTable, {
+        align: ['l', ...Array(txtTable[0].length - 1).fill('r')],
+      })
+    )
+  }
+  if (forcedArray.length > 0) {
+    const txtTable = [
+      ['Hostname', 'Grow', 'Weaken', 'Hack', 'Share'],
+      ['--------', '----', '------', '----', '-----'],
+      ...forcedArray,
+    ]
+    g.printf(
+      '%s',
+      table(txtTable, {
+        align: ['l', ...Array(txtTable[0].length - 1).fill('r')],
+      })
+    )
+  }
 }
