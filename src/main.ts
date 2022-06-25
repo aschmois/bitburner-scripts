@@ -46,7 +46,7 @@ export async function main(ns: NS) {
         servers.set(server.hostname, server)
       }
       if (server.hasAdminRights && server.maxRam > 0) {
-        if (!isHome(server) && !g.ns.fileExists(Scripts.Hack)) {
+        if (!isHome(server) && !g.ns.fileExists(Scripts.Hack, server.hostname)) {
           await g.ns.scp(Object.values(Scripts), server.hostname)
         }
         const scriptExecutions = executeScripts(g, server, runningScripts, new Map(optimizedHackableServers))
