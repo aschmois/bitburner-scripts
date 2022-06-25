@@ -13,10 +13,11 @@ import { Global } from './global.js'
 
 let g: Global
 export async function main(ns: NS) {
-  const a: { terminal: boolean; tail: boolean; optimize: boolean } = ns.flags([
+  const a: { terminal: boolean; tail: boolean; optimize: boolean; share: boolean } = ns.flags([
     ['terminal', false],
     ['tail', false],
     ['optimize', false],
+    ['share', false],
   ])
   if (a.tail) ns.tail()
   g = new Global({ ns, printOnTerminal: a.terminal })
@@ -49,7 +50,7 @@ export async function main(ns: NS) {
         if (!isHome(server) && !g.ns.fileExists(Scripts.Hack, server.hostname)) {
           await g.ns.scp(Object.values(Scripts), server.hostname)
         }
-        const scriptExecutions = executeScripts(g, server, runningScripts, new Map(optimizedHackableServers))
+        const scriptExecutions = executeScripts(g, server, runningScripts, a.share, new Map(optimizedHackableServers))
         if (Array.isArray(scriptExecutions)) {
           for (const scriptExecution of scriptExecutions) {
             const existingScriptRuns =

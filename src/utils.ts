@@ -74,8 +74,10 @@ export function maximizeScriptExec(
   hackingFrom: Server,
   script: Scripts,
   hacking: Server = hackingFrom,
-  max: number = Number.MAX_SAFE_INTEGER
+  _max: number | undefined = undefined,
+  force: boolean | undefined = undefined
 ): ScriptExecution | null {
+  const max: number = _max !== undefined ? _max : Number.MAX_SAFE_INTEGER
   const instances = Math.min(getMaxInstances(g, hackingFrom, script), max)
   if (instances > 0) {
     g.printf_(
@@ -87,7 +89,10 @@ export function maximizeScriptExec(
       hacking.hostname,
       hackingFrom.hostname
     )
-    const pid: PID = g.ns.exec(script, hackingFrom.hostname, instances, hacking.hostname, hackingFrom.hostname)
+    let pid: PID
+    if (force === undefined)
+      pid = g.ns.exec(script, hackingFrom.hostname, instances, hacking.hostname, hackingFrom.hostname)
+    else pid = g.ns.exec(script, hackingFrom.hostname, instances, hacking.hostname, hackingFrom.hostname, true)
     if (pid !== 0) {
       return new ScriptExecution(script, hackingFrom, hacking, instances, pid)
     }
@@ -176,6 +181,7 @@ export function executeScripts(
   g: Global,
   server: Server,
   runningScripts: RunningScripts,
+  share: boolean,
   hackableServers: Servers
 ): Array<ScriptExecution> | ScriptExecutionStatus {
   if (server.maxRam === 0) {
@@ -185,7 +191,8 @@ export function executeScripts(
 
   // There isn't enough work to do with the amount of server capacity we have
   if (!bestServer) {
-    maximizeScriptExec(g, server, Scripts.Share)
+    if (share) maximizeScriptExec(g, server, Scripts.Share)
+    else maximizeScriptExec(g, server, Scripts.Weaken, g.ns.getServer('joesguns'), undefined, true)
     return ScriptExecutionStatus.NoServersToHack
   }
   const serverToHack = bestServer.serverToHack
