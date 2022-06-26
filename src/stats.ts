@@ -4,12 +4,10 @@ import table from 'lib/text-table.js'
 
 let g: Global
 export async function main(ns: NS) {
-  const a: { terminal: boolean; tail: boolean; c: boolean } = ns.flags([
+  const a: { terminal: boolean; con: boolean } = ns.flags([
     ['terminal', false],
-    ['tail', false],
-    ['c', false],
+    ['con', false],
   ])
-  if (a.tail) ns.tail()
   g = new Global({ ns, printOnTerminal: a.terminal })
   while (true) {
     g.enableLog('scanForServers')
@@ -83,13 +81,14 @@ export async function main(ns: NS) {
         g.ns.nFormat(log.server.moneyAvailable, '$0.00a') + '/' + g.ns.nFormat(log.server.moneyMax, '$0.00a'),
       ])
     }
+    g.ns.clearLog()
     g.printf(
       '%s',
       table(txtTable, {
         align: ['l', ...Array(txtTable[0].length - 1).fill('r')],
       })
     )
-    if (a.c) await ns.sleep(1000)
+    if (a.con) await ns.sleep(100)
     else break
   }
 }
