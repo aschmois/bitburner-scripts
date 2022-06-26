@@ -46,7 +46,7 @@ export function executeScripts(
   share: boolean,
   money: boolean,
   _hackableServers: Servers
-): [ScriptExecution] | ScriptExecutionStatus {
+): ScriptExecution[] | ScriptExecutionStatus {
   if (server.maxRam === 0) {
     return ScriptExecutionStatus.CantHackOnServer
   }
@@ -104,29 +104,14 @@ export function executeScripts(
   // Hack Server
   scriptExecutions.push(maximizeScriptExec(g, server, Scripts.Hack, serverToHack, runningCount))
 
-  const nonEmptyScriptExecutions = catNulls(scriptExecutions)
-  if (nonEmptyScriptExecutions) return nonEmptyScriptExecutions
+  const scriptExecutionsNonNull: ScriptExecution[] = []
+  for (const exe of scriptExecutions) {
+    if (exe != null) scriptExecutionsNonNull.push(exe)
+  }
+  if (scriptExecutionsNonNull.length > 0) return scriptExecutionsNonNull
 
   // Server is out of ram but the best server still has capacity for scripts to be run
   return ScriptExecutionStatus.Busy
-}
-
-function catNulls<T>(array: Array<T | null>): [T] | null {
-  if (array.length > 0) {
-    array.filter((t) => t != null)
-    // TODO: How to convince js that an array is nonEmpty without this weird (and not performant) hack??
-    const aT = array.pop()
-    if (aT) {
-      return array.reduce(
-        (acc, t) => {
-          if (t != null) acc.push(t)
-          return acc
-        },
-        [aT]
-      )
-    }
-  }
-  return null
 }
 
 export function maximizeScriptExec(
