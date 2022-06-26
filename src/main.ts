@@ -19,13 +19,13 @@ import table from 'lib/text-table.js'
 
 let g: Global
 export async function main(ns: NS) {
-  const a: { terminal: boolean; optimize: boolean; share: boolean; } = ns.flags([
+  const a: { terminal: boolean; noOptimize: boolean; share: boolean } = ns.flags([
     ['terminal', false],
-    ['optimize', false],
+    ['noOptimize', false],
     ['share', false],
   ])
   g = new Global({ ns, printOnTerminal: a.terminal })
-  if (a.optimize) {
+  if (!a.noOptimize) {
     g.disableLog('openPort')
     g.disableLog('maximizeScriptExec')
     g.disableLog('scanForServers')
@@ -35,7 +35,7 @@ export async function main(ns: NS) {
   let hackableServers = scanForServers(g, isHackable)
   let loopNum = 0
   while (true) {
-    if (!a.optimize) {
+    if (a.noOptimize) {
       hackableServers = scanForServers(g, isHackable)
       servers = scanForServers(g)
     } else {
