@@ -1,21 +1,22 @@
+import { Global } from './lib/global.js'
+
+import table from './ext-lib/text-table.js'
+
+import { isHome } from './lib/utils.js'
+import { isHackable, scanForServers } from './lib/utils/scan.js'
 import {
-  scanForServers,
+  RunningScripts,
+  Scripts,
   executeScripts,
-  nukeServer,
   PID,
   ScriptExecution,
-  RunningScripts,
-  isHackable,
-  Scripts,
-  isHome,
+  ScriptExecutionStatus,
   getRunningCount,
   getMaxWeakens,
   getMaxGrows,
   getMaxHacks,
-  ScriptExecutionStatus,
-} from './lib/utils.js'
-import { Global } from './lib/global.js'
-import table from './ext-lib/text-table.js'
+} from './lib/utils/exec.js'
+import { nukeServer } from './lib/utils/root.js'
 
 let g: Global
 export async function main(ns: NS) {

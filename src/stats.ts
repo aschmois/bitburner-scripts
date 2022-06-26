@@ -1,6 +1,9 @@
-import { getWeightedServerValue, isHackable, scanForServers } from './lib/utils.js'
 import { Global } from './lib/global.js'
+
 import table from './ext-lib/text-table.js'
+
+import { isHackable, scanForServers } from './lib/utils/scan.js'
+import { getWeightedServerValue } from './lib/utils/stats.js'
 
 let g: Global
 export async function main(ns: NS) {
