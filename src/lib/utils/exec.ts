@@ -46,7 +46,7 @@ export function executeScripts(
   share: boolean,
   money: boolean,
   _hackableServers: Servers
-): ScriptExecution[] | ScriptExecutionStatus {
+): [ScriptExecution] | ScriptExecutionStatus {
   if (server.maxRam === 0) {
     return ScriptExecutionStatus.CantHackOnServer
   }
@@ -73,15 +73,14 @@ export function executeScripts(
   const serverToHack = bestServer.serverToHack
   const runningCount = bestServer.runningCount
 
-  const scriptExecutions = []
-  let runningHacks = runningCount.get(Scripts.Hack) ?? 0
+  const scriptExecutions: Array<ScriptExecution | null> = []
   if (money) {
     if (g.ns.hackAnalyzeChance(serverToHack.hostname) > 0.5) {
-      const maxHacks = getMaxHacks(g, serverToHack)
-      const hackExe = maximizeScriptExec(g, server, Scripts.Hack, serverToHack, maxHacks - runningHacks)
+      const runningHacks = runningCount.get(Scripts.Hack) ?? 0
+      const hackExe = maximizeScriptExec(g, server, Scripts.Hack, serverToHack)
       if (hackExe) {
         scriptExecutions.push(hackExe)
-        runningHacks += hackExe.instances
+        runningCount.set(Scripts.Hack, hackExe.instances + runningHacks)
       }
     }
     if (getMaxInstances(g, server, Scripts.Hack) > 0) {
@@ -90,59 +89,70 @@ export function executeScripts(
           const runningScriptExecutions =
             runningScripts.get(nextHackableServer.hostname) ?? new Map<PID, ScriptExecution>()
           const runningCount = getRunningCount(g, runningScriptExecutions).runningCount
-          const runningHacks = runningCount.get(Scripts.Hack) ?? 0
-          const maxHacks = getMaxHacks(g, nextHackableServer)
-          const hackExe = maximizeScriptExec(g, server, Scripts.Hack, nextHackableServer, maxHacks - runningHacks)
-          if (hackExe) {
-            scriptExecutions.push(hackExe)
-          }
+          scriptExecutions.push(maximizeScriptExec(g, server, Scripts.Hack, nextHackableServer, runningCount))
         }
       }
     }
   }
 
   // Weaken Server
-  let runningWeakens = runningCount.get(Scripts.Weaken) ?? 0
-  const maxWeakens = getMaxWeakens(g, serverToHack)
-  const weakenExe = maximizeScriptExec(g, server, Scripts.Weaken, serverToHack, maxWeakens - runningWeakens)
-  if (weakenExe) {
-    scriptExecutions.push(weakenExe)
-    runningWeakens += weakenExe.instances
-  }
+  scriptExecutions.push(maximizeScriptExec(g, server, Scripts.Weaken, serverToHack, runningCount))
 
   // Grow Server
-  let runningGrows = runningCount.get(Scripts.Grow) ?? 0
-  const maxGrows = getMaxGrows(g, serverToHack)
-  const growExe = maximizeScriptExec(g, server, Scripts.Grow, serverToHack, maxGrows - runningGrows)
-  if (growExe) {
-    scriptExecutions.push(growExe)
-    runningGrows += growExe.instances
-  }
+  scriptExecutions.push(maximizeScriptExec(g, server, Scripts.Grow, serverToHack, runningCount))
 
   // Hack Server
-  const maxHacks = getMaxHacks(g, serverToHack)
-  const hackExe = maximizeScriptExec(g, server, Scripts.Hack, serverToHack, maxHacks - runningHacks)
-  if (hackExe) {
-    scriptExecutions.push(hackExe)
-    runningHacks += hackExe.instances
-  }
+  scriptExecutions.push(maximizeScriptExec(g, server, Scripts.Hack, serverToHack, runningCount))
 
-  if (scriptExecutions.length > 0) {
-    return scriptExecutions
-  }
+  const nonEmptyScriptExecutions = catNulls(scriptExecutions)
+  if (nonEmptyScriptExecutions) return nonEmptyScriptExecutions
+
+  // Server is out of ram but the best server still has capacity for scripts to be run
   return ScriptExecutionStatus.Busy
+}
+
+function catNulls<T>(array: Array<T | null>): [T] | null {
+  if (array.length > 0) {
+    array.filter((t) => t != null)
+    // TODO: How to convince js that an array is nonEmpty without this weird (and not performant) hack??
+    const aT = array.pop()
+    if (aT) {
+      return array.reduce(
+        (acc, t) => {
+          if (t != null) acc.push(t)
+          return acc
+        },
+        [aT]
+      )
+    }
+  }
+  return null
 }
 
 export function maximizeScriptExec(
   g: Global,
-  hackingFrom: Server,
+  server: Server,
   script: Scripts,
-  hacking: Server = hackingFrom,
-  _max: number | undefined = undefined,
+  serverToHack: Server = server,
+  runningCount: Map<Scripts, number> | undefined = undefined,
   force: boolean | undefined = undefined
 ): ScriptExecution | null {
-  const max: number = _max !== undefined ? _max : Number.MAX_SAFE_INTEGER
-  const instances = Math.min(getMaxInstances(g, hackingFrom, script), max)
+  let max: number = Number.MAX_SAFE_INTEGER
+  if (runningCount) {
+    const running = runningCount.get(script) ?? 0
+    switch (script) {
+      case Scripts.Weaken:
+        max = getMaxWeakens(g, serverToHack) - running
+        break
+      case Scripts.Grow:
+        max = getMaxGrows(g, serverToHack) - running
+        break
+      case Scripts.Hack:
+        max = getMaxHacks(g, serverToHack) - running
+        break
+    }
+  }
+  const instances = Math.min(getMaxInstances(g, server, script), max)
   if (instances > 0) {
     g.printf_(
       'maximizeScriptExec',
@@ -150,15 +160,14 @@ export function maximizeScriptExec(
       instances.toLocaleString(),
       max === Number.MAX_SAFE_INTEGER ? Infinity.toLocaleString() : max.toLocaleString(),
       script,
-      hacking.hostname,
-      hackingFrom.hostname
+      serverToHack.hostname,
+      server.hostname
     )
     let pid: PID
-    if (force === undefined)
-      pid = g.ns.exec(script, hackingFrom.hostname, instances, hacking.hostname, hackingFrom.hostname)
-    else pid = g.ns.exec(script, hackingFrom.hostname, instances, hacking.hostname, hackingFrom.hostname, true)
+    if (force === undefined) pid = g.ns.exec(script, server.hostname, instances, serverToHack.hostname, server.hostname)
+    else pid = g.ns.exec(script, server.hostname, instances, serverToHack.hostname, server.hostname, true)
     if (pid !== 0) {
-      return new ScriptExecution(script, hackingFrom, hacking, instances, pid, force ? force : false)
+      return new ScriptExecution(script, server, serverToHack, instances, pid, force ? force : false)
     }
   }
   return null
