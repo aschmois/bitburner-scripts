@@ -81,7 +81,9 @@ export async function main(ns: NS) {
       }
       await ns.sleep(30)
     }
-    await ns.sleep(100)
+    g.ns.clearLog()
+    logRunningScripts(runningScripts)
+    await ns.sleep(30)
   }
 }
 
