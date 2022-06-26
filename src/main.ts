@@ -19,13 +19,11 @@ import table from 'lib/text-table.js'
 
 let g: Global
 export async function main(ns: NS) {
-  const a: { terminal: boolean; tail: boolean; optimize: boolean; share: boolean } = ns.flags([
+  const a: { terminal: boolean; optimize: boolean; share: boolean; } = ns.flags([
     ['terminal', false],
-    ['tail', false],
     ['optimize', false],
     ['share', false],
   ])
-  if (a.tail) ns.tail()
   g = new Global({ ns, printOnTerminal: a.terminal })
   if (a.optimize) {
     g.disableLog('openPort')
