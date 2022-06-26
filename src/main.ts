@@ -33,19 +33,22 @@ export async function main(ns: NS) {
     g.disableLog('scanForServers')
   }
   const runningScripts: RunningScripts = new Map()
-  let optimizedServers = scanForServers(g)
-  let optimizedHackableServers = scanForServers(g, isHackable)
+  let servers = scanForServers(g)
+  let hackableServers = scanForServers(g, isHackable)
   let loopNum = 0
   while (true) {
-    loopNum++
-    if (loopNum >= 50) {
-      g.print('Scanning servers...')
-      optimizedHackableServers = scanForServers(g, isHackable)
-      optimizedServers = scanForServers(g)
-      logRunningScripts(runningScripts)
-      loopNum = 0
+    if (!a.optimize) {
+      hackableServers = scanForServers(g, isHackable)
+      servers = scanForServers(g)
+    } else {
+      loopNum++
+      if (loopNum >= 40) {
+        g.print('Scanning servers...')
+        hackableServers = scanForServers(g, isHackable)
+        servers = scanForServers(g)
+        loopNum = 0
+      }
     }
-    const servers = optimizedServers
     for (const [_hostname, _server] of servers.entries()) {
       let server = _server
       if (!server.hasAdminRights) {
@@ -56,7 +59,7 @@ export async function main(ns: NS) {
         if (!isHome(server) && !g.ns.fileExists(Scripts.Hack, server.hostname)) {
           await g.ns.scp(Object.values(Scripts), server.hostname)
         }
-        const scriptExecutions = executeScripts(g, server, runningScripts, a.share, new Map(optimizedHackableServers))
+        const scriptExecutions = executeScripts(g, server, runningScripts, a.share, hackableServers)
         if (Array.isArray(scriptExecutions)) {
           for (const scriptExecution of scriptExecutions) {
             const existingScriptRuns =
@@ -76,6 +79,7 @@ export async function main(ns: NS) {
           }
         }
       }
+      await ns.sleep(30)
     }
     await ns.sleep(100)
   }

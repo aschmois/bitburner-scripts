@@ -191,11 +191,12 @@ export function executeScripts(
   server: Server,
   runningScripts: RunningScripts,
   share: boolean,
-  hackableServers: Servers
+  _hackableServers: Servers
 ): Array<ScriptExecution> | ScriptExecutionStatus {
   if (server.maxRam === 0) {
     return ScriptExecutionStatus.CantHackOnServer
   }
+  const hackableServers = new Map(_hackableServers)
   const bestServer = findBestServerToHack(g, runningScripts, hackableServers)
 
   // There isn't enough work to do with the amount of server capacity we have
