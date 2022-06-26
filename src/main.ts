@@ -13,9 +13,9 @@ import {
   getMaxGrows,
   getMaxHacks,
   ScriptExecutionStatus,
-} from './utils.js'
-import { Global } from './global.js'
-import table from 'lib/text-table.js'
+} from './lib/utils.js'
+import { Global } from './lib/global.js'
+import table from './ext-lib/text-table.js'
 
 let g: Global
 export async function main(ns: NS) {

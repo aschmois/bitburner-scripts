@@ -1,5 +1,5 @@
-import { nukeServer, scanForServers } from './utils.js'
-import { Global } from './global.js'
+import { nukeServer, scanForServers } from './lib/utils.js'
+import { Global } from './lib/global.js'
 
 let g: Global
 export async function main(ns: NS) {

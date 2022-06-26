@@ -1,4 +1,4 @@
-import { Global } from './global.js'
+import { Global } from './lib/global.js'
 
 let g: Global
 export async function main(ns: NS) {
