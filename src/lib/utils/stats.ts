@@ -1,4 +1,4 @@
-import { Global } from '../global'
+import { Global } from 'lib/global.js'
 
 export type Stats = {
   moneyPerS: number

@@ -1,6 +1,6 @@
-import { Global } from '../global.js'
+import { Global } from 'lib/global.js'
 
-import { Hostname } from '../utils.js'
+import { Hostname } from 'lib/utils.js'
 
 export function openPort(
   g: Global,

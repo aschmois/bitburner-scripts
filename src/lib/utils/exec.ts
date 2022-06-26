@@ -1,8 +1,8 @@
-import { Global } from '../global.js'
+import { Global } from 'lib/global.js'
 
-import { Hostname, isHome } from '../utils.js'
-import { isHackable, scanForServers, Servers } from './scan.js'
-import { getWeightedServerValue } from './stats.js'
+import { Hostname, isHome } from 'lib/utils.js'
+import { isHackable, scanForServers, Servers } from 'lib/utils/scan.js'
+import { getWeightedServerValue } from 'lib/utils/stats.js'
 
 export type BestServer = { serverToHack: Server; runningCount: Map<Scripts, number> }
 export type PID = number
