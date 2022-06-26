@@ -19,10 +19,11 @@ import table from 'lib/text-table.js'
 
 let g: Global
 export async function main(ns: NS) {
-  const a: { terminal: boolean; noOptimize: boolean; share: boolean } = ns.flags([
+  const a: { terminal: boolean; noOptimize: boolean; share: boolean; money: boolean } = ns.flags([
     ['terminal', false],
     ['noOptimize', false],
     ['share', false],
+    ['money', false],
   ])
   g = new Global({ ns, printOnTerminal: a.terminal })
   if (!a.noOptimize) {
@@ -57,7 +58,7 @@ export async function main(ns: NS) {
         if (!isHome(server) && !g.ns.fileExists(Scripts.Hack, server.hostname)) {
           await g.ns.scp(Object.values(Scripts), server.hostname)
         }
-        const scriptExecutions = executeScripts(g, server, runningScripts, a.share, hackableServers)
+        const scriptExecutions = executeScripts(g, server, runningScripts, a.share, a.money, hackableServers)
         if (Array.isArray(scriptExecutions)) {
           for (const scriptExecution of scriptExecutions) {
             const existingScriptRuns =
