@@ -81,7 +81,6 @@ export async function main(ns: NS) {
       }
       await ns.sleep(30)
     }
-    g.ns.clearLog()
     logRunningScripts(runningScripts)
     await ns.sleep(30)
   }
@@ -120,6 +119,7 @@ function logRunningScripts(runningScripts: RunningScripts) {
       ])
     }
   }
+  g.ns.clearLog()
   if (runningArray.length > 0) {
     const txtTable = [['Hostname', 'Grow', 'Weaken', 'Hack'], ['--------', '----', '------', '----'], ...runningArray]
     g.printf(
@@ -142,4 +142,10 @@ function logRunningScripts(runningScripts: RunningScripts) {
       })
     )
   }
+  g.printf(
+    '$%s/s | %sxp/s | Share Power: %s',
+    g.ns.nFormat(g.ns.getScriptIncome('main.js', 'home'), '0.00a'),
+    g.ns.nFormat(g.ns.getScriptExpGain('main.js', 'home'), '0,0'),
+    g.ns.nFormat(g.ns.getSharePower(), '0.00a')
+  )
 }
