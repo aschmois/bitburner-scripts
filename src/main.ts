@@ -43,7 +43,6 @@ export async function main(ns: NS) {
     } else {
       loopNum++
       if (loopNum >= 40) {
-        g.print('Scanning servers...')
         hackableServers = scanForServers(g, isHackable)
         servers = scanForServers(g)
         loopNum = 0
