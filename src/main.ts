@@ -29,6 +29,7 @@ export async function main(ns: NS) {
     g.disableLog('openPort')
     g.disableLog('maximizeScriptExec')
     g.disableLog('scanForServers')
+    g.disableLog('logRunningScripts')
   }
   const runningScripts: RunningScripts = new Map()
   let servers = scan()
@@ -67,6 +68,7 @@ export async function main(ns: NS) {
         } else {
           const status = scriptExecutions
           switch (status) {
+            case ScriptExecutionStatus.NoServersToHack:
             case ScriptExecutionStatus.Busy:
               // This is normal behavior. Don't spam the log with this
               break
@@ -101,57 +103,62 @@ function logRunningScripts(runningScripts: RunningScripts) {
     const { runningCount, forced } = getRunningCount(g, runningScriptExecutions)
     if (runningCount.size > 0) {
       let runningWeakens = runningCount.get(Scripts.Weaken) ?? 0
-      const maxWeakens = getMaxWeakens(g, server)
       let runningGrows = runningCount.get(Scripts.Grow) ?? 0
-      const maxGrows = getMaxGrows(g, server)
       let runningHacks = runningCount.get(Scripts.Hack) ?? 0
-      const maxHacks = getMaxHacks(g, server)
-      runningArray.push([
-        server.hostname,
-        `${runningGrows > maxGrows ? '!!' : ''}${g.n(runningGrows, '0,0')}/${g.n(maxGrows, '0,0')}`,
-        `${runningWeakens > maxWeakens ? '!!' : ''}${g.n(runningWeakens, '0,0')}/${g.n(maxWeakens, '0,0')}`,
-        `${runningHacks > maxHacks ? '!!' : ''}${g.n(runningHacks, '0,0')}/${g.n(maxHacks, '0,0')}`,
-      ])
-      if (runningGrows > maxGrows || runningWeakens > maxWeakens || runningHacks > maxHacks) {
-        for (const [pid, exe] of runningScriptExecutions.entries()) {
-          if (exe.forced) continue
-          if (runningGrows <= maxGrows && runningWeakens <= maxWeakens && runningHacks <= maxHacks) break
-          switch (exe.script) {
-            case Scripts.Weaken:
-              if (runningWeakens > maxWeakens) {
-                g.ns.kill(pid)
-                runningWeakens -= exe.instances
-                g.printf(
-                  '[%s] Killed weaken script. Removed %s instances',
-                  exe.hacking.hostname,
-                  g.n(exe.instances, '0,0')
-                )
-              }
-              break
-            case Scripts.Grow:
-              if (runningGrows > maxGrows) {
-                g.ns.kill(pid)
-                runningGrows -= exe.instances
-                g.printf(
-                  '[%s] Killed weaken script. Removed %s instances',
-                  exe.hacking.hostname,
-                  g.n(exe.instances, '0,0')
-                )
-              }
-              break
-            case Scripts.Hack:
-              if (runningHacks > maxHacks) {
-                g.ns.kill(pid)
-                runningHacks -= exe.instances
-                g.printf(
-                  '[%s] Killed weaken script. Removed %s instances',
-                  exe.hacking.hostname,
-                  g.n(exe.instances, '0,0')
-                )
-              }
-              break
-            case Scripts.Share:
-              continue
+      if (runningGrows > 0 && runningWeakens > 0 && runningHacks > 0) {
+        const maxWeakens = getMaxWeakens(g, server)
+        const maxGrows = getMaxGrows(g, server)
+        const maxHacks = getMaxHacks(g, server)
+        runningArray.push([
+          server.hostname,
+          `${runningGrows > maxGrows ? '!!' : ''}${g.n(runningGrows, '0,0')}/${g.n(maxGrows, '0,0')}`,
+          `${runningWeakens > maxWeakens ? '!!' : ''}${g.n(runningWeakens, '0,0')}/${g.n(maxWeakens, '0,0')}`,
+          `${runningHacks > maxHacks ? '!!' : ''}${g.n(runningHacks, '0,0')}/${g.n(maxHacks, '0,0')}`,
+        ])
+        if (runningGrows > maxGrows || runningWeakens > maxWeakens || runningHacks > maxHacks) {
+          for (const [pid, exe] of runningScriptExecutions.entries()) {
+            if (exe.forced) continue
+            if (runningGrows <= maxGrows && runningWeakens <= maxWeakens && runningHacks <= maxHacks) break
+            switch (exe.script) {
+              case Scripts.Weaken:
+                if (runningWeakens > maxWeakens) {
+                  g.ns.kill(pid)
+                  runningWeakens -= exe.instances
+                  g.printf_(
+                    'logRunningScripts',
+                    '[%s] Killed weaken script. Removed %s instances',
+                    exe.hacking.hostname,
+                    g.n(exe.instances, '0,0')
+                  )
+                }
+                break
+              case Scripts.Grow:
+                if (runningGrows > maxGrows) {
+                  g.ns.kill(pid)
+                  runningGrows -= exe.instances
+                  g.printf_(
+                    'logRunningScripts',
+                    '[%s] Killed weaken script. Removed %s instances',
+                    exe.hacking.hostname,
+                    g.n(exe.instances, '0,0')
+                  )
+                }
+                break
+              case Scripts.Hack:
+                if (runningHacks > maxHacks) {
+                  g.ns.kill(pid)
+                  runningHacks -= exe.instances
+                  g.printf_(
+                    'logRunningScripts',
+                    '[%s] Killed weaken script. Removed %s instances',
+                    exe.hacking.hostname,
+                    g.n(exe.instances, '0,0')
+                  )
+                }
+                break
+              case Scripts.Share:
+                continue
+            }
           }
         }
       }
@@ -168,7 +175,7 @@ function logRunningScripts(runningScripts: RunningScripts) {
   }
   g.ns.clearLog()
   if (runningArray.length > 0) {
-    const rows = [['Hostname', 'Grow', 'Weaken', 'Hack'], ['--------', '----', '------', '----'], ...runningArray]
+    const rows = [['Hostname', 'Weaken', 'Grow', 'Hack'], ['--------', '------', '----', '----'], ...runningArray]
     g.printTable({
       rows,
       opts: {
@@ -178,8 +185,8 @@ function logRunningScripts(runningScripts: RunningScripts) {
   }
   if (forcedArray.length > 0) {
     const rows = [
-      ['Hostname', 'Grow', 'Weaken', 'Hack', 'Share'],
-      ['--------', '----', '------', '----', '-----'],
+      ['Hostname', 'Weaken', 'Grow', 'Hack', 'Share'],
+      ['--------', '------', '----', '----', '-----'],
       ...forcedArray,
     ]
     g.printTable({

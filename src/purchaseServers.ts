@@ -12,15 +12,9 @@ export async function main(ns: NS) {
       const cost = ns.getPurchasedServerCost(ram)
       try {
         const hostname = ns.purchaseServer('1337haxor', ram)
-        if (hostname)
-          g.printf('Bought %s with %sGB of ram. It costed $%s.', hostname, ram.toLocaleString(), cost.toLocaleString())
+        if (hostname) g.printf('Bought %s with %sGB of ram. It costed $%s.', hostname, g.n(ram, '0,0'), g.n(cost))
       } catch (e) {
-        g.printf(
-          "Couldn't buy a server with %sGB of ram. It costed $%s. Error: %s",
-          ram.toLocaleString(),
-          cost.toLocaleString(),
-          e
-        )
+        g.printf("Couldn't buy a server with %sGB of ram. It costed $%s. Error: %s", g.n(ram, '0,0'), g.n(cost), e)
       }
     } finally {
       await ns.sleep(1000)
@@ -52,8 +46,8 @@ function deleteWorstPurchasedServer(newRam: number): boolean {
     g.printf(
       'Deleting server %s with %sGB to be replaced with a server with %sGB',
       worstServer.hostname,
-      worstServer.ram.toLocaleString(),
-      newRam.toLocaleString()
+      g.n(worstServer.ram, '0,0'),
+      g.n(newRam, '0,0')
     )
     g.ns.killall(worstServer.hostname)
     g.ns.deleteServer(worstServer.hostname)
