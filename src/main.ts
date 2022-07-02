@@ -105,7 +105,7 @@ function logRunningScripts(runningScripts: RunningScripts) {
       let runningWeakens = runningCount.get(Script.Weaken) ?? 0
       let runningGrows = runningCount.get(Script.Grow) ?? 0
       let runningHacks = runningCount.get(Script.Hack) ?? 0
-      if (runningGrows > 0 && runningWeakens > 0 && runningHacks > 0) {
+      if (runningGrows > 0 || runningWeakens > 0 || runningHacks > 0) {
         const maxWeakens = getMaxWeakens(g, server)
         const maxGrows = getMaxGrows(g, server)
         const maxHacks = getMaxHacks(g, server)
