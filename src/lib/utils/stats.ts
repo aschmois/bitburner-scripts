@@ -1,3 +1,5 @@
+import { Server } from '@ns'
+
 import { Global } from 'lib/global.js'
 
 export type Stats = {

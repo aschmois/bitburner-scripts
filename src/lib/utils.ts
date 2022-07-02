@@ -1,3 +1,5 @@
+import { Server } from '@ns'
+
 export function isHome(server: Server) {
   return server.hostname === 'home'
 }

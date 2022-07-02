@@ -1,4 +1,28 @@
 {
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+
+  // Linter Settings
+  // "typescript.validate.enable": false,
+  "javascript.validate.enable": false,
+  "eslint.validate": ["typescript", "typescriptreact"],
+  "eslint.workingDirectories": ["./src"],
+  "editor.codeActionsOnSave": { "source.fixAll.eslint": true },
+
+  // Use Non-relative imports so the game can find files in its fake directory structure
+  "javascript.preferences.importModuleSpecifier": "non-relative",
+  "typescript.preferences.importModuleSpecifier": "non-relative",
+
+  // Bitburner Extension Settings
   "bitburner.scriptRoot": "./out/",
-  "editor.defaultFormatter": "esbenp.prettier-vscode"
+
+  // Autosave Settings
+  "files.autoSave": "off",
+
+  // Autosnippet settings
+  "autoSnippet.snippets": [
+    {
+      "pattern": "**/*.ts",
+      "snippet": "ns-template"
+    }
+  ]
 }
