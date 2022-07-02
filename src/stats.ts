@@ -1,7 +1,5 @@
 import { Global } from './lib/global.js'
 
-import table from './ext-lib/text-table.js'
-
 import { isHackable, scanForServers } from './lib/utils/scan.js'
 import { getWeightedServerValue } from './lib/utils/stats.js'
 
@@ -22,7 +20,7 @@ export async function main(ns: NS) {
       values.push(getWeightedServerValue(g, _server))
     }
     values.sort((a, b) => a.value - b.value)
-    const txtTable = [
+    const table: string[][] = [
       [
         'hostname',
         '$/s',
@@ -64,7 +62,7 @@ export async function main(ns: NS) {
     ]
     for (const { log } of values) {
       const theoreticalMoneyPerS = log.moneyPerS * log.threads
-      txtTable.push([
+      table.push([
         log.server.hostname,
         `${g.ns.nFormat(log.moneyPerS, '$0.00a')}/s`,
         '*',
@@ -85,12 +83,12 @@ export async function main(ns: NS) {
       ])
     }
     g.ns.clearLog()
-    g.printf(
-      '%s',
-      table(txtTable, {
-        align: ['l', ...Array(txtTable[0].length - 1).fill('r')],
-      })
-    )
+    g.printTable({
+      rows: table,
+      opts: {
+        align: ['l', ...Array(table[0].length - 1).fill('r')],
+      },
+    })
     if (a.con) await ns.sleep(100)
     else break
   }

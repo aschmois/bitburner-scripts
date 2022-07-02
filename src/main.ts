@@ -1,7 +1,5 @@
 import { Global } from './lib/global.js'
 
-import table from './ext-lib/text-table.js'
-
 import { isHome } from './lib/utils.js'
 import { isHackable, scanForServers } from './lib/utils/scan.js'
 import {
@@ -147,26 +145,26 @@ function logRunningScripts(runningScripts: RunningScripts) {
   }
   g.ns.clearLog()
   if (runningArray.length > 0) {
-    const txtTable = [['Hostname', 'Grow', 'Weaken', 'Hack'], ['--------', '----', '------', '----'], ...runningArray]
-    g.printf(
-      '%s',
-      table(txtTable, {
-        align: ['l', ...Array(txtTable[0].length - 1).fill('r')],
-      })
-    )
+    const rows = [['Hostname', 'Grow', 'Weaken', 'Hack'], ['--------', '----', '------', '----'], ...runningArray]
+    g.printTable({
+      rows,
+      opts: {
+        align: ['l', ...Array(rows[0].length - 1).fill('r')],
+      },
+    })
   }
   if (forcedArray.length > 0) {
-    const txtTable = [
+    const rows = [
       ['Hostname', 'Grow', 'Weaken', 'Hack', 'Share'],
       ['--------', '----', '------', '----', '-----'],
       ...forcedArray,
     ]
-    g.printf(
-      '%s',
-      table(txtTable, {
-        align: ['l', ...Array(txtTable[0].length - 1).fill('r')],
-      })
-    )
+    g.printTable({
+      rows,
+      opts: {
+        align: ['l', ...Array(rows[0].length - 1).fill('r')],
+      },
+    })
   }
   g.printf(
     '$%s/s | %sxp/s | Share Power: %s',

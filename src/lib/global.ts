@@ -1,4 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import table from 'ext-lib/text-table.js'
+
 export class Global {
   public ns: NS
   public printOnTerminal: boolean
@@ -33,6 +35,20 @@ export class Global {
     }
   }
 
+  printTable(tableInfo: Table) {
+    if (this.printOnTerminal) {
+      this.ns.tprintf('%s', table(tableInfo.rows, tableInfo.opts))
+    } else {
+      this.ns.printf('%s', table(tableInfo.rows, tableInfo.opts))
+    }
+  }
+
+  printTable_(caller: string, tableInfo: Table) {
+    if (!this.disableFunctions.has(caller)) {
+      this.printTable(tableInfo)
+    }
+  }
+
   print(...args: any[]) {
     if (this.printOnTerminal) {
       this.ns.tprintf('%s', args)
@@ -46,4 +62,10 @@ export class Global {
       this.print(...args)
     }
   }
+
+  n(number: number, format: string = '0.00a') {
+    return this.ns.nFormat(number, format)
+  }
 }
+
+export type Table = { rows: string[][]; opts?: Record<string, unknown> }
