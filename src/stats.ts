@@ -64,22 +64,22 @@ export async function main(ns: NS) {
       const theoreticalMoneyPerS = log.moneyPerS * log.threads
       table.push([
         log.server.hostname,
-        `${g.ns.nFormat(log.moneyPerS, '$0.00a')}/s`,
+        `${g.n(log.moneyPerS, '$0.00a')}/s`,
         '*',
-        g.ns.nFormat(log.threads, '0,0'),
+        g.n(log.threads, '0,0'),
         '=',
-        `${g.ns.nFormat(theoreticalMoneyPerS, '$0.00a')}/s`,
+        `${g.n(theoreticalMoneyPerS, '$0.00a')}/s`,
         '*',
-        g.ns.nFormat(log.weight, '0.00a'),
+        g.n(log.weight),
         '+',
-        g.ns.nFormat(log.server.moneyMax / 1000000000, '$0.00a'),
+        g.n(log.server.moneyMax / 1000000000, '$0.00a'),
         '=',
-        g.ns.nFormat(log.value, '0.00a'),
+        g.n(log.value),
         '|',
         (log.chance * 100).toFixed(0) + '%',
-        g.ns.nFormat(log.server.baseDifficulty, '0,0'),
-        g.ns.nFormat(log.server.requiredHackingSkill, '0,0'),
-        g.ns.nFormat(log.server.moneyAvailable, '$0.00a') + '/' + g.ns.nFormat(log.server.moneyMax, '$0.00a'),
+        g.n(log.server.baseDifficulty, '0,0'),
+        g.n(log.server.requiredHackingSkill, '0,0'),
+        g.n(log.server.moneyAvailable, '$0.00a') + '/' + g.n(log.server.moneyMax, '$0.00a'),
       ])
     }
     g.ns.clearLog()

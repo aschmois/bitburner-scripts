@@ -108,12 +108,9 @@ function logRunningScripts(runningScripts: RunningScripts) {
       const maxHacks = getMaxHacks(g, server)
       runningArray.push([
         server.hostname,
-        `${runningGrows > maxGrows ? '!!' : ''}${g.ns.nFormat(runningGrows, '0,0')}/${g.ns.nFormat(maxGrows, '0,0')}`,
-        `${runningWeakens > maxWeakens ? '!!' : ''}${g.ns.nFormat(runningWeakens, '0,0')}/${g.ns.nFormat(
-          maxWeakens,
-          '0,0'
-        )}`,
-        `${runningHacks > maxHacks ? '!!' : ''}${g.ns.nFormat(runningHacks, '0,0')}/${g.ns.nFormat(maxHacks, '0,0')}`,
+        `${runningGrows > maxGrows ? '!!' : ''}${g.n(runningGrows, '0,0')}/${g.n(maxGrows, '0,0')}`,
+        `${runningWeakens > maxWeakens ? '!!' : ''}${g.n(runningWeakens, '0,0')}/${g.n(maxWeakens, '0,0')}`,
+        `${runningHacks > maxHacks ? '!!' : ''}${g.n(runningHacks, '0,0')}/${g.n(maxHacks, '0,0')}`,
       ])
       if (runningGrows > maxGrows || runningWeakens > maxWeakens || runningHacks > maxHacks) {
         for (const [pid, exe] of runningScriptExecutions.entries()) {
@@ -127,7 +124,7 @@ function logRunningScripts(runningScripts: RunningScripts) {
                 g.printf(
                   '[%s] Killed weaken script. Removed %s instances',
                   exe.hacking.hostname,
-                  g.ns.nFormat(exe.instances, '0,0')
+                  g.n(exe.instances, '0,0')
                 )
               }
               break
@@ -138,7 +135,7 @@ function logRunningScripts(runningScripts: RunningScripts) {
                 g.printf(
                   '[%s] Killed weaken script. Removed %s instances',
                   exe.hacking.hostname,
-                  g.ns.nFormat(exe.instances, '0,0')
+                  g.n(exe.instances, '0,0')
                 )
               }
               break
@@ -149,7 +146,7 @@ function logRunningScripts(runningScripts: RunningScripts) {
                 g.printf(
                   '[%s] Killed weaken script. Removed %s instances',
                   exe.hacking.hostname,
-                  g.ns.nFormat(exe.instances, '0,0')
+                  g.n(exe.instances, '0,0')
                 )
               }
               break
@@ -162,10 +159,10 @@ function logRunningScripts(runningScripts: RunningScripts) {
     if (forced.size > 0) {
       forcedArray.push([
         server.hostname,
-        g.ns.nFormat(forced.get(Scripts.Grow) ?? 0, '0,0'),
-        g.ns.nFormat(forced.get(Scripts.Weaken) ?? 0, '0,0'),
-        g.ns.nFormat(forced.get(Scripts.Hack) ?? 0, '0,0'),
-        g.ns.nFormat(forced.get(Scripts.Share) ?? 0, '0,0'),
+        g.n(forced.get(Scripts.Grow) ?? 0, '0,0'),
+        g.n(forced.get(Scripts.Weaken) ?? 0, '0,0'),
+        g.n(forced.get(Scripts.Hack) ?? 0, '0,0'),
+        g.n(forced.get(Scripts.Share) ?? 0, '0,0'),
       ])
     }
   }
@@ -194,9 +191,9 @@ function logRunningScripts(runningScripts: RunningScripts) {
   }
   g.printf(
     '$%s/s | %sxp/s | Share Power: %s | Karma: %s',
-    g.ns.nFormat(g.ns.getScriptIncome('main.js', 'home'), '0.00a'),
-    g.ns.nFormat(g.ns.getScriptExpGain('main.js', 'home'), '0,0'),
-    g.ns.nFormat(g.ns.getSharePower(), '0.00a'),
-    g.ns.nFormat(g.ns.heart.break(), '0.00a')
+    g.n(g.ns.getScriptIncome('main.js', 'home')),
+    g.n(g.ns.getScriptExpGain('main.js', 'home'), '0,0'),
+    g.n(g.ns.getSharePower()),
+    g.n(g.ns.heart.break())
   )
 }
