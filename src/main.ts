@@ -13,6 +13,8 @@ import {
   getMaxWeakens,
   getMaxGrows,
   getMaxHacks,
+  isScript,
+  scriptNames,
 } from './lib/utils/exec.js'
 import { nukeServer } from './lib/utils/root.js'
 
@@ -38,6 +40,19 @@ export async function main(ns: NS) {
   }
   const runningScripts: RunningScripts = new Map()
   let servers = scan()
+  // Load running scripts
+  for (const [hostname, server] of servers.entries()) {
+    g.ns.ps(hostname).forEach((ps) => {
+      const script = isScript(ps.filename)
+      if (ps.args.length !== 3 || !script) return
+      const hackingHostname = ps.args[0]
+      const execs = runningScripts.get(hackingHostname) ?? new Map<PID, ScriptExecution>()
+      const hacking = servers.get(hackingHostname) ?? g.ns.getServer(hackingHostname)
+      const exec = new ScriptExecution(script, server, hacking, ps.threads, ps.pid, ps.args[2] === 'true')
+      execs.set(ps.pid, exec)
+      runningScripts.set(hackingHostname, execs)
+    })
+  }
   let hackableServers = scanForServers(g, isHackable)
   let loopNum = 0
   while (true) {
@@ -60,7 +75,7 @@ export async function main(ns: NS) {
       }
       if (server.hasAdminRights && server.maxRam > 0) {
         if (!isHome(server) && !g.ns.fileExists(Script.Hack, server.hostname)) {
-          await g.ns.scp(Object.values(Script), server.hostname)
+          await g.ns.scp(scriptNames, server.hostname)
         }
         const scriptExecutions = executeScripts(g, server, runningScripts, share, money, hackableServers)
         if (Array.isArray(scriptExecutions)) {

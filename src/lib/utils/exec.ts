@@ -28,12 +28,18 @@ export class ScriptExecution {
   }
 }
 
+export function isScript(script: string | Script): Script | null {
+  return (scriptNames as string[]).includes(script) ? (script as Script) : null
+}
+
 export enum Script {
   Grow = '/hacking/grow.js',
   Hack = '/hacking/hack.js',
   Weaken = '/hacking/weaken.js',
   Share = '/hacking/share.js',
 }
+
+export const scriptNames = Object.values(Script)
 
 export enum ScriptExecutionStatus {
   NoServersToHack = 'NoServersToHack', // couldn't find any servers to hack
