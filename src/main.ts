@@ -4,7 +4,7 @@ import { isHome } from './lib/utils.js'
 import { isHackable, scanForServers } from './lib/utils/scan.js'
 import {
   RunningScripts,
-  Scripts,
+  Script,
   executeScripts,
   PID,
   ScriptExecution,
@@ -54,8 +54,8 @@ export async function main(ns: NS) {
         servers.set(server.hostname, server)
       }
       if (server.hasAdminRights && server.maxRam > 0) {
-        if (!isHome(server) && !g.ns.fileExists(Scripts.Hack, server.hostname)) {
-          await g.ns.scp(Object.values(Scripts), server.hostname)
+        if (!isHome(server) && !g.ns.fileExists(Script.Hack, server.hostname)) {
+          await g.ns.scp(Object.values(Script), server.hostname)
         }
         const scriptExecutions = executeScripts(g, server, runningScripts, a.share, a.money, hackableServers)
         if (Array.isArray(scriptExecutions)) {
@@ -102,9 +102,9 @@ function logRunningScripts(runningScripts: RunningScripts) {
     const server = g.ns.getServer(hostname)
     const { runningCount, forced } = getRunningCount(g, runningScriptExecutions)
     if (runningCount.size > 0) {
-      let runningWeakens = runningCount.get(Scripts.Weaken) ?? 0
-      let runningGrows = runningCount.get(Scripts.Grow) ?? 0
-      let runningHacks = runningCount.get(Scripts.Hack) ?? 0
+      let runningWeakens = runningCount.get(Script.Weaken) ?? 0
+      let runningGrows = runningCount.get(Script.Grow) ?? 0
+      let runningHacks = runningCount.get(Script.Hack) ?? 0
       if (runningGrows > 0 && runningWeakens > 0 && runningHacks > 0) {
         const maxWeakens = getMaxWeakens(g, server)
         const maxGrows = getMaxGrows(g, server)
@@ -120,7 +120,7 @@ function logRunningScripts(runningScripts: RunningScripts) {
             if (exe.forced) continue
             if (runningGrows <= maxGrows && runningWeakens <= maxWeakens && runningHacks <= maxHacks) break
             switch (exe.script) {
-              case Scripts.Weaken:
+              case Script.Weaken:
                 if (runningWeakens > maxWeakens) {
                   g.ns.kill(pid)
                   runningWeakens -= exe.instances
@@ -132,7 +132,7 @@ function logRunningScripts(runningScripts: RunningScripts) {
                   )
                 }
                 break
-              case Scripts.Grow:
+              case Script.Grow:
                 if (runningGrows > maxGrows) {
                   g.ns.kill(pid)
                   runningGrows -= exe.instances
@@ -144,7 +144,7 @@ function logRunningScripts(runningScripts: RunningScripts) {
                   )
                 }
                 break
-              case Scripts.Hack:
+              case Script.Hack:
                 if (runningHacks > maxHacks) {
                   g.ns.kill(pid)
                   runningHacks -= exe.instances
@@ -156,7 +156,7 @@ function logRunningScripts(runningScripts: RunningScripts) {
                   )
                 }
                 break
-              case Scripts.Share:
+              case Script.Share:
                 continue
             }
           }
@@ -166,10 +166,10 @@ function logRunningScripts(runningScripts: RunningScripts) {
     if (forced.size > 0) {
       forcedArray.push([
         server.hostname,
-        g.n(forced.get(Scripts.Grow) ?? 0, '0,0'),
-        g.n(forced.get(Scripts.Weaken) ?? 0, '0,0'),
-        g.n(forced.get(Scripts.Hack) ?? 0, '0,0'),
-        g.n(forced.get(Scripts.Share) ?? 0, '0,0'),
+        g.n(forced.get(Script.Grow) ?? 0, '0,0'),
+        g.n(forced.get(Script.Weaken) ?? 0, '0,0'),
+        g.n(forced.get(Script.Hack) ?? 0, '0,0'),
+        g.n(forced.get(Script.Share) ?? 0, '0,0'),
       ])
     }
   }

@@ -6,19 +6,19 @@ import { Hostname, isHome } from 'lib/utils.js'
 import { isHackable, scanForServers, Servers } from 'lib/utils/scan.js'
 import { getWeightedServerValue } from 'lib/utils/stats.js'
 
-export type BestServer = { serverToHack: Server; runningCount: Map<Scripts, number> }
+export type BestServer = { serverToHack: Server; runningCount: Map<Script, number> }
 export type PID = number
 export type RunningScripts = Map<Hostname, Map<PID, ScriptExecution>>
 
 export class ScriptExecution {
-  public script: Scripts
+  public script: Script
   public hackingFrom: Server
   public hacking: Server
   public instances: number
   public pid: PID
   public forced: boolean
 
-  constructor(script: Scripts, hackingFrom: Server, hacking: Server, instances: number, pid: PID, forced: boolean) {
+  constructor(script: Script, hackingFrom: Server, hacking: Server, instances: number, pid: PID, forced: boolean) {
     this.script = script
     this.hackingFrom = hackingFrom
     this.hacking = hacking
@@ -28,7 +28,7 @@ export class ScriptExecution {
   }
 }
 
-export enum Scripts {
+export enum Script {
   Grow = '/hacking/grow.js',
   Hack = '/hacking/hack.js',
   Weaken = '/hacking/weaken.js',
@@ -59,13 +59,13 @@ export function executeScripts(
   if (!bestServer) {
     let exe
     if (share) {
-      exe = maximizeScriptExec(g, server, Scripts.Share)
+      exe = maximizeScriptExec(g, server, Script.Share)
     } else {
       let xpServer = g.ns.getServer('joesguns')
       if (g.ns.getHackingLevel() < xpServer.requiredHackingSkill) {
         xpServer = g.ns.getServer('n00dles')
       }
-      exe = maximizeScriptExec(g, server, Scripts.Weaken, xpServer, undefined, true)
+      exe = maximizeScriptExec(g, server, Script.Weaken, xpServer, undefined, true)
     }
     if (exe) {
       return [exe]
@@ -78,33 +78,33 @@ export function executeScripts(
   const scriptExecutions: Array<ScriptExecution | null> = []
   if (money) {
     if (g.ns.hackAnalyzeChance(serverToHack.hostname) > 0.5) {
-      const runningHacks = runningCount.get(Scripts.Hack) ?? 0
-      const hackExe = maximizeScriptExec(g, server, Scripts.Hack, serverToHack)
+      const runningHacks = runningCount.get(Script.Hack) ?? 0
+      const hackExe = maximizeScriptExec(g, server, Script.Hack, serverToHack)
       if (hackExe) {
         scriptExecutions.push(hackExe)
-        runningCount.set(Scripts.Hack, hackExe.instances + runningHacks)
+        runningCount.set(Script.Hack, hackExe.instances + runningHacks)
       }
     }
-    if (getMaxInstances(g, server, Scripts.Hack) > 0) {
+    if (getMaxInstances(g, server, Script.Hack) > 0) {
       for (const [_hostname, nextHackableServer] of hackableServers.entries()) {
         if (g.ns.hackAnalyzeChance(nextHackableServer.hostname) > 0.5) {
           const runningScriptExecutions =
             runningScripts.get(nextHackableServer.hostname) ?? new Map<PID, ScriptExecution>()
           const runningCount = getRunningCount(g, runningScriptExecutions).runningCount
-          scriptExecutions.push(maximizeScriptExec(g, server, Scripts.Hack, nextHackableServer, runningCount))
+          scriptExecutions.push(maximizeScriptExec(g, server, Script.Hack, nextHackableServer, runningCount))
         }
       }
     }
   }
 
   // Weaken Server
-  scriptExecutions.push(maximizeScriptExec(g, server, Scripts.Weaken, serverToHack, runningCount))
+  scriptExecutions.push(maximizeScriptExec(g, server, Script.Weaken, serverToHack, runningCount))
 
   // Grow Server
-  scriptExecutions.push(maximizeScriptExec(g, server, Scripts.Grow, serverToHack, runningCount))
+  scriptExecutions.push(maximizeScriptExec(g, server, Script.Grow, serverToHack, runningCount))
 
   // Hack Server
-  scriptExecutions.push(maximizeScriptExec(g, server, Scripts.Hack, serverToHack, runningCount))
+  scriptExecutions.push(maximizeScriptExec(g, server, Script.Hack, serverToHack, runningCount))
 
   const scriptExecutionsNonNull: ScriptExecution[] = []
   for (const exe of scriptExecutions) {
@@ -119,22 +119,22 @@ export function executeScripts(
 export function maximizeScriptExec(
   g: Global,
   server: Server,
-  script: Scripts,
+  script: Script,
   serverToHack: Server = server,
-  runningCount: Map<Scripts, number> | undefined = undefined,
-  force: boolean | undefined = undefined
+  runningCount: Map<Script, number> | undefined = undefined,
+  force: boolean = false
 ): ScriptExecution | null {
   let max: number = Number.MAX_SAFE_INTEGER
   if (runningCount) {
     const running = runningCount.get(script) ?? 0
     switch (script) {
-      case Scripts.Weaken:
+      case Script.Weaken:
         max = getMaxWeakens(g, serverToHack) - running
         break
-      case Scripts.Grow:
+      case Script.Grow:
         max = getMaxGrows(g, serverToHack) - running
         break
-      case Scripts.Hack:
+      case Script.Hack:
         max = getMaxHacks(g, serverToHack) - running
         break
     }
@@ -150,17 +150,15 @@ export function maximizeScriptExec(
       serverToHack.hostname,
       server.hostname
     )
-    let pid: PID
-    if (force === undefined) pid = g.ns.exec(script, server.hostname, instances, serverToHack.hostname, server.hostname)
-    else pid = g.ns.exec(script, server.hostname, instances, serverToHack.hostname, server.hostname, true)
+    const pid: PID = g.ns.exec(script, server.hostname, instances, serverToHack.hostname, server.hostname, force)
     if (pid !== 0) {
-      return new ScriptExecution(script, server, serverToHack, instances, pid, force ? force : false)
+      return new ScriptExecution(script, server, serverToHack, instances, pid, force)
     }
   }
   return null
 }
 
-export function getMaxInstances(g: Global, server: Server, script: Scripts): number {
+export function getMaxInstances(g: Global, server: Server, script: Script): number {
   let freeRam = g.ns.getServerMaxRam(server.hostname) - g.ns.getServerUsedRam(server.hostname)
   if (isHome(server)) freeRam = Math.max(0, freeRam - 32)
   const ramCost = g.ns.getScriptRam(script, server.hostname)
@@ -191,9 +189,9 @@ export function getMaxWeakens(g: Global, _server: Server) {
 export function getRunningCount(
   g: Global,
   runningScriptExecutions: Map<PID, ScriptExecution>
-): { runningCount: Map<Scripts, number>; forced: Map<Scripts, number> } {
-  const runningCount = new Map<Scripts, number>()
-  const runningCountForced = new Map<Scripts, number>()
+): { runningCount: Map<Script, number>; forced: Map<Script, number> } {
+  const runningCount = new Map<Script, number>()
+  const runningCountForced = new Map<Script, number>()
   for (const [pid, scriptExecution] of runningScriptExecutions.entries()) {
     if (g.ns.getRunningScript(pid)) {
       if (!scriptExecution.forced) {
@@ -231,9 +229,9 @@ export function findBestServerToHack(
       runningScripts.delete(serverToHack.hostname)
     }
     if (
-      (runningCount.get(Scripts.Hack) ?? 0) >= getMaxHacks(g, serverToHack) &&
-      (runningCount.get(Scripts.Grow) ?? 0) >= getMaxGrows(g, serverToHack) &&
-      (runningCount.get(Scripts.Weaken) ?? 0) >= getMaxWeakens(g, serverToHack)
+      (runningCount.get(Script.Hack) ?? 0) >= getMaxHacks(g, serverToHack) &&
+      (runningCount.get(Script.Grow) ?? 0) >= getMaxGrows(g, serverToHack) &&
+      (runningCount.get(Script.Weaken) ?? 0) >= getMaxWeakens(g, serverToHack)
     ) {
       // The best server has been maxed out, look for the next available one
       hackableServers.delete(serverToHack.hostname)
