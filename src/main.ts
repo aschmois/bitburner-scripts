@@ -31,18 +31,18 @@ export async function main(ns: NS) {
     g.disableLog('scanForServers')
   }
   const runningScripts: RunningScripts = new Map()
-  let servers = scanForServers(g)
+  let servers = scan()
   let hackableServers = scanForServers(g, isHackable)
   let loopNum = 0
   while (true) {
     if (a.noOptimize) {
       hackableServers = scanForServers(g, isHackable)
-      servers = scanForServers(g)
+      servers = scan()
     } else {
       loopNum++
       if (loopNum >= 40) {
         hackableServers = scanForServers(g, isHackable)
-        servers = scanForServers(g)
+        servers = scan()
         loopNum = 0
       }
     }
@@ -81,6 +81,16 @@ export async function main(ns: NS) {
     logRunningScripts(runningScripts)
     await ns.sleep(30)
   }
+}
+
+function scan() {
+  const servers = scanForServers(g)
+  const purchased = g.ns.getPurchasedServers()
+  for (const p of purchased) {
+    const server = g.ns.getServer(p)
+    servers.set(p, server)
+  }
+  return servers
 }
 
 function logRunningScripts(runningScripts: RunningScripts) {
