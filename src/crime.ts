@@ -1,6 +1,4 @@
 import { Global } from 'lib/global'
-import _ from 'lodash'
-
 const doc: Document = eval('document')
 
 let g: Global
