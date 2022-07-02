@@ -11,8 +11,16 @@ declare global {
   const ReactDOM: typeof ReactDOM
 
   interface NS extends bitburner.NS {
-    /** Function to get karma `ns.heart().break()` */
-    heart: any
+    heart: {
+      /** hidden function
+       * @returns player karma */
+      break(): number
+    }
+    openDevMenu(): void
+    exploit(): void
+    bypass(doc: Document): void
+    alterReality(): void
+    rainbow(guess: string): void
   }
 
   type AutocompleteConfig = [string, string | number | boolean | string[]][]
