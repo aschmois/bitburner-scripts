@@ -108,23 +108,39 @@ function logRunningScripts(runningScripts: RunningScripts) {
       if (runningGrows > maxGrows || runningWeakens > maxWeakens || runningHacks > maxHacks) {
         for (const [pid, exe] of runningScriptExecutions.entries()) {
           if (exe.forced) continue
+          if (runningGrows <= maxGrows && runningWeakens <= maxWeakens && runningHacks <= maxHacks) break
           switch (exe.script) {
             case Scripts.Weaken:
               if (runningWeakens > maxWeakens) {
                 g.ns.kill(pid)
                 runningWeakens -= exe.instances
+                g.printf(
+                  '[%s] Killed weaken script. Removed %s instances',
+                  exe.hacking.hostname,
+                  g.ns.nFormat(exe.instances, '0,0')
+                )
               }
               break
             case Scripts.Grow:
               if (runningGrows > maxGrows) {
                 g.ns.kill(pid)
                 runningGrows -= exe.instances
+                g.printf(
+                  '[%s] Killed weaken script. Removed %s instances',
+                  exe.hacking.hostname,
+                  g.ns.nFormat(exe.instances, '0,0')
+                )
               }
               break
             case Scripts.Hack:
               if (runningHacks > maxHacks) {
                 g.ns.kill(pid)
                 runningHacks -= exe.instances
+                g.printf(
+                  '[%s] Killed weaken script. Removed %s instances',
+                  exe.hacking.hostname,
+                  g.ns.nFormat(exe.instances, '0,0')
+                )
               }
               break
             case Scripts.Share:
