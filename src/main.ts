@@ -193,9 +193,10 @@ function logRunningScripts(runningScripts: RunningScripts) {
     })
   }
   g.printf(
-    '$%s/s | %sxp/s | Share Power: %s',
+    '$%s/s | %sxp/s | Share Power: %s | Karma: %s',
     g.ns.nFormat(g.ns.getScriptIncome('main.js', 'home'), '0.00a'),
     g.ns.nFormat(g.ns.getScriptExpGain('main.js', 'home'), '0,0'),
-    g.ns.nFormat(g.ns.getSharePower(), '0.00a')
+    g.ns.nFormat(g.ns.getSharePower(), '0.00a'),
+    g.ns.nFormat(g.ns.heart.break(), '0.00a')
   )
 }
