@@ -19,6 +19,7 @@
       "@ns": ["../NetscriptDefinitions.d.ts"]
     },
     "lib": ["DOM"],
+    "skipLibCheck": true,
     "allowJs": true
   }
 }

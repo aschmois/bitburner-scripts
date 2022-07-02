@@ -1,4 +1,3 @@
-// @ts-nocheck
 import _ from 'lodash'
 import * as bitburner from './NetscriptDefinitions'
 import React from 'react'
