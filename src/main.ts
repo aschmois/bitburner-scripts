@@ -18,14 +18,19 @@ import { nukeServer } from './lib/utils/root.js'
 
 let g: Global
 export async function main(ns: NS) {
-  const a: { terminal: boolean; noOptimize: boolean; share: boolean; money: boolean } = ns.flags([
+  const {
+    terminal,
+    noOptimize,
+    share,
+    money,
+  }: { terminal: boolean; noOptimize: boolean; share: boolean; money: boolean } = ns.flags([
     ['terminal', false],
     ['noOptimize', false],
     ['share', false],
     ['money', false],
   ])
-  g = new Global({ ns, printOnTerminal: a.terminal })
-  if (!a.noOptimize) {
+  g = new Global({ ns, printOnTerminal: terminal })
+  if (!noOptimize) {
     g.disableLog('openPort')
     g.disableLog('maximizeScriptExec')
     g.disableLog('scanForServers')
@@ -36,7 +41,7 @@ export async function main(ns: NS) {
   let hackableServers = scanForServers(g, isHackable)
   let loopNum = 0
   while (true) {
-    if (a.noOptimize) {
+    if (noOptimize) {
       hackableServers = scanForServers(g, isHackable)
       servers = scan()
     } else {
@@ -57,7 +62,7 @@ export async function main(ns: NS) {
         if (!isHome(server) && !g.ns.fileExists(Script.Hack, server.hostname)) {
           await g.ns.scp(Object.values(Script), server.hostname)
         }
-        const scriptExecutions = executeScripts(g, server, runningScripts, a.share, a.money, hackableServers)
+        const scriptExecutions = executeScripts(g, server, runningScripts, share, money, hackableServers)
         if (Array.isArray(scriptExecutions)) {
           for (const scriptExecution of scriptExecutions) {
             const existingScriptRuns =
