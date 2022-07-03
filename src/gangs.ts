@@ -4,9 +4,15 @@ import { Global } from './lib/global.js'
 
 let g: Global
 export async function main(ns: NS) {
-  const { terminal, favorMoney, noAscend }: { terminal: boolean; favorMoney: boolean; noAscend: boolean } = ns.flags([
+  const {
+    terminal,
+    favorMoney,
+    favorTraining,
+    noAscend,
+  }: { terminal: boolean; favorMoney: boolean; favorTraining: boolean; noAscend: boolean } = ns.flags([
     ['terminal', false],
     ['favorMoney', false],
+    ['favorTraining', false],
     ['noAscend', false],
   ])
   g = new Global({ ns, printOnTerminal: terminal })
@@ -77,7 +83,7 @@ export async function main(ns: NS) {
       }
 
       // If the member is too weak, train them
-      if (member.hack < 5000 || (!favorMoney && (ascension?.hack ?? 0) < 1.5)) {
+      if (favorTraining || member.hack < 5000 || (!favorMoney && (ascension?.hack ?? 0) < 1.5)) {
         task = HackingGangJob.TrainHacking
       }
 
