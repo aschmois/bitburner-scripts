@@ -4,15 +4,12 @@ import { Global } from './lib/global.js'
 
 let g: Global
 export async function main(ns: NS) {
-  const a: { terminal: boolean; trainHacking: boolean; trainCharisma: boolean; money: boolean; noAscend: boolean } =
-    ns.flags([
-      ['terminal', false],
-      ['trainHacking', false],
-      ['trainCharisma', false],
-      ['money', false],
-      ['noAscend', false],
-    ])
-  g = new Global({ ns, printOnTerminal: a.terminal })
+  const { terminal, favorMoney, noAscend }: { terminal: boolean; favorMoney: boolean; noAscend: boolean } = ns.flags([
+    ['terminal', false],
+    ['favorMoney', false],
+    ['noAscend', false],
+  ])
+  g = new Global({ ns, printOnTerminal: terminal })
 
   const gang = g.ns.gang
   while (true) {
@@ -38,9 +35,7 @@ export async function main(ns: NS) {
     }
     equipment.sort((a, b) => a.cost - b.cost)
 
-    const table: string[][] = [
-      ['Name', 'Hack', 'hack_asc_mul', 'hack_exp', 'Cha', 'cha_asc_mul', 'cha_exp', 'Asc', 'Task', 'Equipped'],
-    ]
+    const table: string[][] = [['Name', 'Hack', 'hack_asc_mul', 'hack_exp', 'Asc', 'Task', 'Equipped']]
 
     for (const memberName of memberNames) {
       let member = gang.getMemberInformation(memberName)
@@ -51,21 +46,16 @@ export async function main(ns: NS) {
       const check = hackProps.some((prop) => {
         return getPropReadyToAscend(member, ascension, prop)
       })
+
       // hack
       log.push(g.n(member.hack))
       log.push(
         `${g.n(member.hack_asc_mult)} * ${g.n(ascension?.hack ?? 0)} > ${g.n(getValueToAscend(member.hack_asc_mult))}`
       )
       log.push(g.n(member.hack_exp))
-      // cha
-      log.push(g.n(member.cha))
-      log.push(
-        `${g.n(member.cha_asc_mult)} * ${g.n(ascension?.cha ?? 0)} > ${g.n(getValueToAscend(member.cha_asc_mult))}`
-      )
-      log.push(g.n(member.cha_exp))
 
       if (check) {
-        if (a.noAscend) {
+        if (noAscend) {
           log.push('✓')
         } else {
           log.push(gang.ascendMember(memberName) ? '✓' : 'X')
@@ -76,13 +66,23 @@ export async function main(ns: NS) {
       }
 
       /* Task management */
-      let task = 'Money Laundering'
-      if (!a.money && (a.trainHacking || member.hack < 100000)) {
-        task = 'Train Hacking'
-      } else if (!a.money && (a.trainCharisma || member.cha < 100000)) {
-        task = 'Train Charisma'
+      const gangInfo = gang.getGangInformation()
+
+      // By default launder money
+      let task: HackingGangJob = HackingGangJob.MoneyLaundering
+
+      // If our wanted penalty is too high, lower it
+      if (gangInfo.wantedPenalty < 0.99 && gangInfo.wantedLevelGainRate >= 0) {
+        task = HackingGangJob.EthicalHacking
       }
+
+      // If the member is too weak, train them
+      if (member.hack < 5000 || (!favorMoney && (ascension?.hack ?? 0) < 1.5)) {
+        task = HackingGangJob.TrainHacking
+      }
+
       gang.setMemberTask(memberName, task)
+
       if (member.task !== task) log.push(`${member.task} -> ${task}`)
       else log.push(task)
 
@@ -92,7 +92,6 @@ export async function main(ns: NS) {
       for (const { name, cost } of equipment) {
         if (!gang.purchaseEquipment(memberName, name) && !currEquipment.has(name)) {
           needsEquip = true
-          // break
         }
       }
       log.push(needsEquip ? 'X' : '✓')
@@ -107,9 +106,6 @@ export async function main(ns: NS) {
           'r', // Hack
           'r', // hack_asc_mul
           'r', // hack_exp
-          'r', // Cha
-          'r', // cha_asc_mul
-          'r', // cha_exp
           'c', // Asc
           'l', // Task
           'c', // Equipped
@@ -145,3 +141,21 @@ type GangTypeProps = 'str' | 'def' | 'dex' | 'agi' | 'hack' | 'cha'
 
 type GangHackTypeProps = 'hack' | 'cha'
 const hackProps: GangHackTypeProps[] = ['hack', 'cha']
+
+enum HackingGangJob {
+  Unassigned = 'Unassigned',
+  Ransomware = 'Ransomware',
+  Phishing = 'Phishing',
+  IdentityTheft = 'Identity Theft',
+  DDoSAttacks = 'DDoS Attacks',
+  PlantVirus = 'Plant Virus',
+  FraudCounterfeiting = 'Fraud & Counterfeiting',
+  MoneyLaundering = 'Money Laundering',
+  Cyberterrorism = 'Cyberterrorism',
+  EthicalHacking = 'Ethical Hacking',
+  VigilanteJustice = 'Vigilante Justice',
+  TrainCombat = 'Train Combat',
+  TrainHacking = 'Train Hacking',
+  TrainCharisma = 'Train Charisma',
+  TerritoryWarfare = 'Territory Warfare',
+}
