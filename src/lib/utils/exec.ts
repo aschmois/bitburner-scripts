@@ -41,21 +41,15 @@ export enum Script {
 
 export const scriptNames = Object.values(Script)
 
-export enum ScriptExecutionStatus {
-  NoServersToHack = 'NoServersToHack', // couldn't find any servers to hack
-  CantHackOnServer = 'CantHackOnServer', // see canBeHackedOn
-  Busy = 'Busy', // server is busy, no ram available
-}
-
 export function executeScripts(
   g: Global,
   server: Server,
   runningScripts: RunningScripts,
   share: boolean,
   _hackableServers: Servers
-): ScriptExecution[] | ScriptExecutionStatus {
+): ScriptExecution[] {
   if (server.maxRam === 0) {
-    return ScriptExecutionStatus.CantHackOnServer
+    return []
   }
   const hackableServers = new Map(_hackableServers)
   const bestServer = findBestServerToHack(g, runningScripts, hackableServers)
@@ -63,19 +57,19 @@ export function executeScripts(
   // There isn't enough work to do with the amount of server capacity we have
   if (!bestServer) {
     let exe
-    if (share) {
-      exe = maximizeScriptExec(g, server, Script.Share, undefined, undefined, true)
-    } else {
+    if (!share) {
       let xpServer = g.ns.getServer('joesguns')
       if (g.ns.getHackingLevel() < xpServer.requiredHackingSkill) {
         xpServer = g.ns.getServer('n00dles')
       }
-      exe = maximizeScriptExec(g, server, Script.Weaken, xpServer, undefined, true)
+      if (xpServer.hasAdminRights) exe = maximizeScriptExec(g, server, Script.Weaken, xpServer, undefined, true)
+    } else {
+      exe = maximizeScriptExec(g, server, Script.Share, undefined, undefined, true)
     }
     if (exe) {
       return [exe]
     }
-    return ScriptExecutionStatus.NoServersToHack
+    return []
   }
   const serverToHack = bestServer.serverToHack
   const runningCount = bestServer.runningCount
@@ -95,10 +89,12 @@ export function executeScripts(
   for (const exe of scriptExecutions) {
     if (exe != null) scriptExecutionsNonNull.push(exe)
   }
-  if (scriptExecutionsNonNull.length > 0) return scriptExecutionsNonNull
-
-  // Server is out of ram but the best server still has capacity for scripts to be run
-  return ScriptExecutionStatus.Busy
+  if (Object.keys(Script).some((script) => getMaxInstances(g, server, script as Script) > 0)) {
+    // Server still has capacity for scripts to be run, let's delete the current server and continue
+    hackableServers.delete(serverToHack.hostname)
+    return [...scriptExecutionsNonNull, ...executeScripts(g, server, runningScripts, share, hackableServers)]
+  }
+  return scriptExecutionsNonNull
 }
 
 export function maximizeScriptExec(

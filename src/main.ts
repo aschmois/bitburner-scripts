@@ -8,7 +8,6 @@ import {
   executeScripts,
   PID,
   ScriptExecution,
-  ScriptExecutionStatus,
   getRunningCount,
   getMaxWeakens,
   getMaxGrows,
@@ -72,24 +71,12 @@ export async function main(ns: NS) {
           await g.ns.scp(scriptNames, server.hostname)
         }
         const scriptExecutions = executeScripts(g, server, runningScripts, share, hackableServers)
-        if (Array.isArray(scriptExecutions)) {
-          for (const scriptExecution of scriptExecutions) {
-            const existingScriptRuns =
-              runningScripts.get(scriptExecution.hacking.hostname) ?? new Map<PID, ScriptExecution>()
-            existingScriptRuns.set(scriptExecution.pid, scriptExecution)
-            runningScripts.set(scriptExecution.hacking.hostname, existingScriptRuns)
-          }
-        } else {
-          const status = scriptExecutions
-          switch (status) {
-            case ScriptExecutionStatus.NoServersToHack:
-            case ScriptExecutionStatus.Busy:
-              // This is normal behavior. Don't spam the log with this
-              break
-            default:
-              g.printf('[%s] Failed to execute scripts: %s', server.hostname, status.toString())
-              break
-          }
+
+        for (const scriptExecution of scriptExecutions) {
+          const existingScriptRuns =
+            runningScripts.get(scriptExecution.hacking.hostname) ?? new Map<PID, ScriptExecution>()
+          existingScriptRuns.set(scriptExecution.pid, scriptExecution)
+          runningScripts.set(scriptExecution.hacking.hostname, existingScriptRuns)
         }
       }
       await ns.sleep(10)
