@@ -172,6 +172,8 @@ export function getMaxInstances(g: Global, server: Server, script: Script): numb
 }
 
 export function getMaxHacks(g: Global, _server: Server) {
+  // don't allow hacking on servers that essentially do nothing
+  if (g.ns.hackAnalyzeChance(_server.hostname) <= 0.3) return 0
   const server = g.ns.getServer(_server.hostname)
   const max = g.ns.hackAnalyzeThreads(server.hostname, server.moneyAvailable)
   return Math.floor(max === Infinity ? 0 : max)
