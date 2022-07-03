@@ -60,7 +60,8 @@ export async function main(ns: NS) {
       )
       log.push(g.n(member.hack_exp))
 
-      if (check) {
+      // Should not ascend if we don't have at least 10b
+      if (check && g.ns.getServerMoneyAvailable('home') >= 10_000_000_000) {
         if (noAscend) {
           log.push('✓')
         } else {
