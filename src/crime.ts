@@ -1,4 +1,5 @@
 import { Global } from 'lib/global'
+import * as React from 'react'
 const doc: Document = eval('document')
 
 let g: Global
@@ -10,23 +11,40 @@ export async function main(ns: NS) {
   if (!clickOnHtmlElement(findSlumsButton())) throw "Couldn't click on slums button"
   while (true) {
     const crime = findCrimeButton(crimeText)
-    if (crime == null) {
+    if (crime === null) {
       throw `Can't find crime ${crimeText}`
     }
-    const handler = Object.keys(crime)[1]
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-ignore
-    crime[handler].onClick({ isTrusted: true })
-    let cancelButton
-    while ((cancelButton = findCancelCrimeButton()) !== null) {
-      // let canBreak = false
-      // cancelButton.onclick((ev: MouseEvent) => {
-      //   canBreak = true
-      // })
-      // if (canBreak) break
+    const crimeR = getReactElement(crime)
+    if (crimeR === null) {
+      throw `Can't find react element for crime ${crimeText}`
+    }
+    clickReactElement(crimeR)
+    let shouldBreak = false
+    while (true) {
+      const cancelButton = findCancelCrimeButton()
+      if (cancelButton === null) break
+      cancelButton.onclick = () => {
+        shouldBreak = true
+      }
       await ns.sleep(1000)
     }
+    if (shouldBreak) return
   }
+}
+
+function getReactElement(elem: HTMLElement): React.HTMLAttributes<HTMLElement> | null {
+  const handler = Object.keys(elem)[1]
+  if (!handler) return null
+  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+  // @ts-ignore
+  const reactElem = elem[handler] as React.HTMLAttributes<HTMLElement>
+  return reactElem ? reactElem : null
+}
+
+function clickReactElement(elem: React.HTMLAttributes<HTMLElement>) {
+  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+  // @ts-ignore
+  elem.onClick?.({ isTrusted: true })
 }
 
 function clickOnHtmlElement(elem: HTMLElement | null) {
