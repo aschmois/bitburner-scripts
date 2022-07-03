@@ -195,6 +195,9 @@ function logRunningScripts(runningScripts: RunningScripts) {
   }
   g.ns.clearLog()
   if (runningArray.length > 0) {
+    runningArray.sort(function (a, b) {
+      return a[0].localeCompare(b[0])
+    })
     const rows = [['Hostname', 'Weaken', 'Grow', 'Hack'], ['--------', '------', '----', '----'], ...runningArray]
     g.printTable({
       rows,
@@ -204,6 +207,9 @@ function logRunningScripts(runningScripts: RunningScripts) {
     })
   }
   if (forcedArray.length > 0) {
+    forcedArray.sort(function (a, b) {
+      return a[0].localeCompare(b[0])
+    })
     const rows = [
       ['Hostname', 'Weaken', 'Grow', 'Hack', 'Share'],
       ['--------', '------', '----', '----', '-----'],
