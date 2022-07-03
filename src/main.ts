@@ -20,16 +20,10 @@ import { nukeServer } from './lib/utils/root.js'
 
 let g: Global
 export async function main(ns: NS) {
-  const {
-    terminal,
-    noOptimize,
-    share,
-    money,
-  }: { terminal: boolean; noOptimize: boolean; share: boolean; money: boolean } = ns.flags([
+  const { terminal, noOptimize, share }: { terminal: boolean; noOptimize: boolean; share: boolean } = ns.flags([
     ['terminal', false],
     ['noOptimize', false],
     ['share', false],
-    ['money', false],
   ])
   g = new Global({ ns, printOnTerminal: terminal })
   if (!noOptimize) {
@@ -77,7 +71,7 @@ export async function main(ns: NS) {
         if (!isHome(server) && !g.ns.fileExists(Script.Hack, server.hostname)) {
           await g.ns.scp(scriptNames, server.hostname)
         }
-        const scriptExecutions = executeScripts(g, server, runningScripts, share, money, hackableServers)
+        const scriptExecutions = executeScripts(g, server, runningScripts, share, hackableServers)
         if (Array.isArray(scriptExecutions)) {
           for (const scriptExecution of scriptExecutions) {
             const existingScriptRuns =
