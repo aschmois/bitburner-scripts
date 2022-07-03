@@ -78,7 +78,10 @@ export async function main(ns: NS) {
       let task: HackingGangJob = HackingGangJob.MoneyLaundering
 
       // If our wanted penalty is too high, lower it
-      if (gangInfo.wantedPenalty < 0.99 && gangInfo.wantedLevelGainRate >= 0) {
+      if (
+        (member.task === HackingGangJob.EthicalHacking && gangInfo.wantedPenalty < 0.99) ||
+        (gangInfo.wantedPenalty < 0.99 && gangInfo.wantedLevelGainRate >= 0)
+      ) {
         task = HackingGangJob.EthicalHacking
       }
 
