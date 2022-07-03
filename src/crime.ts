@@ -26,10 +26,31 @@ export async function main(ns: NS) {
       cancelButton.onclick = () => {
         shouldBreak = true
       }
-      await ns.sleep(1000)
+      const timeRemaining = getCrimeTimeRemaining()
+      if (!timeRemaining || timeRemaining < 2) {
+        findBackdrop()?.click()
+      }
+      await ns.sleep(500)
     }
     if (shouldBreak) return
   }
+}
+
+function getCrimeTimeRemaining(): number | null {
+  for (const elem of Array.from(doc.querySelectorAll('p'))) {
+    if (elem.textContent?.includes('seconds remaining')) {
+      const re = /(?:([0-9]+)\sminutes?\s)?([0-9]+)\sseconds remaining/
+      const match = re.exec(elem.textContent)
+      if (match && match.length === 3) {
+        const m = _.toInteger(match[1] || '0')
+        const s = _.toInteger(match[2])
+        if (!_.isNaN(s)) {
+          return m * 60 + s
+        }
+      }
+    }
+  }
+  return null
 }
 
 function getReactElement(elem: HTMLElement): React.HTMLAttributes<HTMLElement> | null {
@@ -66,6 +87,10 @@ function findCityButton(): HTMLParagraphElement | null {
 
 function findSlumsButton(): HTMLSpanElement | null {
   return doc.querySelector('[aria-label="The Slums"]')
+}
+
+function findBackdrop(): HTMLDivElement | null {
+  return doc.querySelector('.MuiBackdrop-root')
 }
 
 function findCrimeButton(text: string): HTMLButtonElement | null {
