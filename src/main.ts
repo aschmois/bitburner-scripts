@@ -98,10 +98,10 @@ export async function main(ns: NS) {
           }
         }
       }
-      await ns.sleep(30)
+      await ns.sleep(10)
     }
     logRunningScripts(runningScripts)
-    await ns.sleep(30)
+    await ns.sleep(10)
   }
 }
 
@@ -118,6 +118,7 @@ function scan() {
 function logRunningScripts(runningScripts: RunningScripts) {
   const runningArray = []
   const forcedArray = []
+  let accShareInstances = 0
   for (const [hostname, runningScriptExecutions] of runningScripts.entries()) {
     const server = g.ns.getServer(hostname)
     const { runningCount, forced } = getRunningCount(g, runningScriptExecutions)
@@ -184,13 +185,18 @@ function logRunningScripts(runningScripts: RunningScripts) {
       }
     }
     if (forced.size > 0) {
-      forcedArray.push([
-        server.hostname,
-        g.n(forced.get(Script.Grow) ?? 0, '0,0'),
-        g.n(forced.get(Script.Weaken) ?? 0, '0,0'),
-        g.n(forced.get(Script.Hack) ?? 0, '0,0'),
-        g.n(forced.get(Script.Share) ?? 0, '0,0'),
-      ])
+      const runningWeakens = forced.get(Script.Weaken) ?? 0
+      const runningGrows = forced.get(Script.Grow) ?? 0
+      const runningHacks = forced.get(Script.Hack) ?? 0
+      accShareInstances += forced.get(Script.Share) ?? 0
+      if (runningGrows > 0 || runningWeakens > 0 || runningHacks > 0) {
+        forcedArray.push([
+          server.hostname,
+          g.n(forced.get(Script.Grow) ?? 0, '0,0'),
+          g.n(forced.get(Script.Weaken) ?? 0, '0,0'),
+          g.n(forced.get(Script.Hack) ?? 0, '0,0'),
+        ])
+      }
     }
   }
   g.ns.clearLog()
@@ -210,11 +216,7 @@ function logRunningScripts(runningScripts: RunningScripts) {
     forcedArray.sort(function (a, b) {
       return a[0].localeCompare(b[0])
     })
-    const rows = [
-      ['Hostname', 'Weaken', 'Grow', 'Hack', 'Share'],
-      ['--------', '------', '----', '----', '-----'],
-      ...forcedArray,
-    ]
+    const rows = [['Hostname', 'Weaken', 'Grow', 'Hack'], ['--------', '------', '----', '----'], ...forcedArray]
     g.printTable({
       rows,
       opts: {
@@ -223,10 +225,11 @@ function logRunningScripts(runningScripts: RunningScripts) {
     })
   }
   g.printf(
-    '$%s/s | %sxp/s | Share Power: %s | Karma: %s',
-    g.n(g.ns.getScriptIncome('main.js', 'home')),
-    g.n(g.ns.getScriptExpGain('main.js', 'home'), '0,0'),
+    '$%s/s | %sxp/s | Share Power/Instances: %s/%s | Karma: %s',
+    g.n(g.ns.getScriptIncome('main.js', 'home', ...g.ns.args.map((v) => v + ''))),
+    g.n(g.ns.getScriptExpGain('main.js', 'home', ...g.ns.args.map((v) => v + '')), '0,0'),
     g.n(g.ns.getSharePower()),
+    g.n(accShareInstances),
     g.n(g.ns.heart.break())
   )
 }

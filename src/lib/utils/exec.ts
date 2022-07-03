@@ -65,7 +65,7 @@ export function executeScripts(
   if (!bestServer) {
     let exe
     if (share) {
-      exe = maximizeScriptExec(g, server, Script.Share)
+      exe = maximizeScriptExec(g, server, Script.Share, undefined, undefined, true)
     } else {
       let xpServer = g.ns.getServer('joesguns')
       if (g.ns.getHackingLevel() < xpServer.requiredHackingSkill) {
