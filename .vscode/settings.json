@@ -2,8 +2,6 @@
   "editor.defaultFormatter": "esbenp.prettier-vscode",
 
   // Linter Settings
-  // "typescript.validate.enable": false,
-  "javascript.validate.enable": false,
   "eslint.validate": ["typescript", "typescriptreact"],
   "eslint.workingDirectories": ["./src"],
   "editor.codeActionsOnSave": { "source.fixAll.eslint": true },

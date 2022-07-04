@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import table from 'ext-lib/text-table.js'
+import table from 'ext-lib/text-table/text-table.js'
 
 export class Global {
   public ns: NS
