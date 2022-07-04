@@ -41,8 +41,8 @@ async function download(url, dest) {
   })
 }
 
-async function downloadJsFile(lib, dir) {
-  const jsPath = await download(lib.url, `${dir}/${lib.name}.js`)
+async function downloadJsFile(lib, libDir) {
+  const jsPath = await download(lib.url, `${libDir}/${lib.name}.js`)
   console.log(lib.name, 'Downloaded', jsPath)
   const data = await fs.promises.readFile(jsPath, 'utf8')
   var result = data.replace(/module.exports =/g, 'export default')
@@ -62,12 +62,13 @@ const libs = [
     url: 'https://raw.githubusercontent.com/substack/text-table/master/index.js',
   },
 ]
-
+const libRootDir = './src/ext-lib'
+await fs.promises.rm(libRootDir, { recursive: true, force: true })
 for (const lib of libs) {
-  const dir = `./src/ext-lib/${lib.name}`
-  downloadJsFile(lib, dir)
-  if (lib.license) download(lib.license, `${dir}/LICENSE`).then((dl) => console.log(lib.name, 'Downloaded', dl))
-  if (lib.types) download(lib.types, `${dir}/${lib.name}.d.ts`).then((dl) => console.log(lib.name, 'Downloaded', dl))
+  const libDir = `${libRootDir}/${lib.name}`
+  downloadJsFile(lib, libDir)
+  if (lib.license) download(lib.license, `${libDir}/LICENSE`).then((dl) => console.log(lib.name, 'Downloaded', dl))
+  if (lib.types) download(lib.types, `${libDir}/${lib.name}.d.ts`).then((dl) => console.log(lib.name, 'Downloaded', dl))
 }
 
 // Download Bitburner defs
