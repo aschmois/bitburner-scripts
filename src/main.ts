@@ -79,10 +79,10 @@ export async function main(ns: NS) {
           runningScripts.set(scriptExecution.hacking.hostname, existingScriptRuns)
         }
       }
-      await ns.sleep(10)
+      await ns.sleep(30)
     }
     logRunningScripts(runningScripts)
-    await ns.sleep(10)
+    await ns.sleep(30)
   }
 }
 
