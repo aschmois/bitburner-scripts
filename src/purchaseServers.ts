@@ -1,4 +1,4 @@
-import { Global } from './lib/global.js'
+import { Global } from './lib/global'
 
 let g: Global
 export async function main(ns: NS) {
@@ -8,7 +8,12 @@ export async function main(ns: NS) {
     try {
       const ram = calcBestRam()
       if (!ram) continue // can't afford any server
-      if (!deleteWorstPurchasedServer(ram) && ram == g.ns.getPurchasedServerMaxRam()) break // didn't delete any servers and can afford max ram
+      if (
+        g.ns.getPurchasedServers().length >= g.ns.getPurchasedServerLimit() &&
+        !deleteWorstPurchasedServer(ram) &&
+        ram == g.ns.getPurchasedServerMaxRam()
+      )
+        break // didn't delete any servers and can afford max ram
       const cost = ns.getPurchasedServerCost(ram)
       try {
         const hostname = ns.purchaseServer('1337haxor', ram)
