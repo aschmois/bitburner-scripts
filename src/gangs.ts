@@ -80,8 +80,9 @@ export async function main(ns: NS) {
 
       // If our wanted penalty is too high, lower it
       if (
-        (member.task === HackingGangJob.EthicalHacking && gangInfo.wantedPenalty < 0.99) ||
-        (gangInfo.wantedPenalty < 0.99 && gangInfo.wantedLevelGainRate >= 0)
+        gangInfo.respect > 0 &&
+        ((member.task === HackingGangJob.EthicalHacking && gangInfo.wantedPenalty < 0.99) ||
+          (gangInfo.wantedPenalty < 0.99 && gangInfo.wantedLevelGainRate >= 0))
       ) {
         task = HackingGangJob.EthicalHacking
       }
