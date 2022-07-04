@@ -141,7 +141,7 @@ export function maximizeScriptExec(
 
 export function getMaxInstances(g: Global, server: Server, script: Script): number {
   let freeRam = g.ns.getServerMaxRam(server.hostname) - g.ns.getServerUsedRam(server.hostname)
-  if (isHome(server)) freeRam = Math.max(0, freeRam - 32)
+  if (isHome(server)) freeRam = Math.max(0, freeRam - 64)
   const ramCost = g.ns.getScriptRam(script, server.hostname)
   return Math.floor(freeRam / ramCost)
 }
