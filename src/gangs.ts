@@ -29,19 +29,18 @@ export async function main(ns: NS) {
       // don't care about errors here, we just recruit until we can't
     }
 
-    const memberNames = gang.getMemberNames()
-    const allEquipmentNames = gang.getEquipmentNames()
-    const equipment: { name: string; cost: number }[] = []
+    const equipment = gang
+      .getEquipmentNames()
+      .reduce((acc, equipmentName) => {
+        const piece = gang.getEquipmentStats(equipmentName)
+        if (piece.cha || piece.hack) {
+          acc.push({ name: equipmentName, cost: gang.getEquipmentCost(equipmentName) })
+        }
+        return acc
+      }, [] as { name: string; cost: number }[])
+      .sort((a, b) => a.cost - b.cost) // sort cheapest equipment first
 
-    for (const equipmentName of allEquipmentNames) {
-      const piece = gang.getEquipmentStats(equipmentName)
-      if (piece.cha || piece.hack) {
-        equipment.push({ name: equipmentName, cost: gang.getEquipmentCost(equipmentName) })
-      }
-    }
-    equipment.sort((a, b) => a.cost - b.cost)
-
-    const table: string[][] = [['Name', 'Hack', 'hack_asc_mul', 'hack_exp', 'Asc', 'Task', 'Equipped']]
+    const table: string[][] = [['Name', 'Hack', 'hack_asc_mul', 'hack_exp', 'Asc', 'Task', 'Equip Cost']]
 
     for (const memberName of memberNames) {
       let member = gang.getMemberInformation(memberName)
@@ -98,14 +97,14 @@ export async function main(ns: NS) {
       else log.push(task)
 
       /* Equipment */
-      const currEquipment = getEquipmentFromMember(member)
-      let needsEquip = false
+      const currEquipment = new Set([...member.upgrades, ...member.augmentations])
+      let equipCost = 0
       for (const { name, cost } of equipment) {
-        if (!gang.purchaseEquipment(memberName, name) && !currEquipment.has(name)) {
-          needsEquip = true
+        if (!currEquipment.has(name) && !gang.purchaseEquipment(member.name, name)) {
+          equipCost += cost
         }
       }
-      log.push(needsEquip ? 'X' : '✓')
+      log.push(equipCost > 0 ? g.n(equipCost, '$0.00a') : '✓')
       table.push(log)
     }
     g.ns.clearLog()
@@ -119,16 +118,12 @@ export async function main(ns: NS) {
           'r', // hack_exp
           'c', // Asc
           'l', // Task
-          'c', // Equipped
+          'r', // Equip Cost
         ],
       },
     })
     await g.ns.sleep(1000)
   }
-}
-
-function getEquipmentFromMember(member: GangMemberInfo) {
-  return new Set([...member.upgrades, ...member.augmentations])
 }
 
 function getPropReadyToAscend(member: GangMemberInfo, ascension: GangMemberAscension | undefined, prop: GangTypeProps) {
