@@ -29,6 +29,10 @@ export async function main(ns: NS) {
       // don't care about errors here, we just recruit until we can't
     }
 
+    const members = gang
+      .getMemberNames()
+      .map((name) => gang.getMemberInformation(name))
+      .sort((a, b) => b.hack - a.hack) // sort highest hacking first
     const equipment = gang
       .getEquipmentNames()
       .reduce((acc, equipmentName) => {
@@ -42,12 +46,12 @@ export async function main(ns: NS) {
 
     const table: string[][] = [['Name', 'Hack', 'hack_asc_mul', 'hack_exp', 'Asc', 'Task', 'Equip Cost']]
 
-    for (const memberName of memberNames) {
-      let member = gang.getMemberInformation(memberName)
-      const log = [memberName]
+    for (const _member of members) {
+      let member = _member
+      const log = [member.name]
 
       /* Ascension */
-      const ascension = gang.getAscensionResult(memberName)
+      const ascension = gang.getAscensionResult(member.name)
       const check = hackProps.some((prop) => {
         return getPropReadyToAscend(member, ascension, prop)
       })
@@ -64,8 +68,9 @@ export async function main(ns: NS) {
         if (noAscend) {
           log.push('✓')
         } else {
-          log.push(gang.ascendMember(memberName) ? '✓' : 'X')
-          member = gang.getMemberInformation(memberName)
+          log.push(gang.ascendMember(member.name) ? '✓' : 'X')
+          // since the member was ascended update the reference
+          member = gang.getMemberInformation(member.name)
         }
       } else {
         log.push('X')
@@ -91,7 +96,7 @@ export async function main(ns: NS) {
         task = HackingGangJob.TrainHacking
       }
 
-      gang.setMemberTask(memberName, task)
+      gang.setMemberTask(member.name, task)
 
       if (member.task !== task) log.push(`${member.task} -> ${task}`)
       else log.push(task)
