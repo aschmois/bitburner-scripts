@@ -1,7 +1,9 @@
-import { Global } from './lib/global.js'
+import { Global } from './lib/global'
 
-import { isHackable, scanForServers } from './lib/utils/scan.js'
-import { getWeightedServerValue } from './lib/utils/stats.js'
+import { isHackable, scanForServers } from './lib/utils/scan'
+import { getWeightedServerValue } from './lib/utils/stats'
+import EasyTable from 'easy-table'
+import { Printer } from '/lib/easy-table'
 
 let g: Global
 export async function main(ns: NS) {
@@ -10,85 +12,33 @@ export async function main(ns: NS) {
     ['con', false],
   ])
   g = new Global({ ns, printOnTerminal: a.terminal })
+  g.disableLog('scanForServers')
   while (true) {
-    g.enableLog('scanForServers')
     scanForServers(g, (g, s) => !s.purchasedByPlayer)
-    g.disableLog('scanForServers')
     const servers = scanForServers(g, isHackable)
     const values = []
     for (const [_hostname, _server] of servers.entries()) {
       values.push(getWeightedServerValue(g, _server))
     }
-    values.sort((a, b) => a.value - b.value)
-    const table: string[][] = [
-      [
-        'hostname',
-        '$/s',
-        '*',
-        'threads',
-        '=',
-        't$/s',
-        '*',
-        'weight',
-        '+',
-        '$max/1b',
-        '=',
-        'value',
-        '|',
-        'chance',
-        'diff',
-        'lvl',
-        '$avail/$max',
-      ],
-      [
-        '--------',
-        '---',
-        '-',
-        '-------',
-        '-',
-        '----',
-        '-',
-        '------',
-        '-',
-        '-------',
-        '-',
-        '-----',
-        '-',
-        '------',
-        '----',
-        '---',
-        '-----------',
-      ],
-    ]
+    const table = new EasyTable()
     for (const { log } of values) {
       const theoreticalMoneyPerS = log.moneyPerS * log.threads
-      table.push([
-        log.server.hostname,
-        `${g.n(log.moneyPerS, '$0.00a')}/s`,
-        '*',
-        g.n(log.threads, '0,0'),
-        '=',
-        `${g.n(theoreticalMoneyPerS, '$0.00a')}/s`,
-        '*',
-        g.n(log.weight),
-        '+',
-        g.n(log.server.moneyMax / 1000000000, '$0.00a'),
-        '=',
-        g.n(log.value),
-        '|',
-        (log.chance * 100).toFixed(0) + '%',
-        g.n(log.server.baseDifficulty, '0,0'),
-        g.n(log.server.requiredHackingSkill, '0,0'),
-        g.n(log.server.moneyAvailable, '$0.00a') + '/' + g.n(log.server.moneyMax, '$0.00a'),
-      ])
+      table.cell('hostname', log.server.hostname)
+      table.cell('$/s', log.moneyPerS, Printer.currency(g, { post: '/s' }))
+      table.cell('threads', log.threads, Printer.number(g, { pre: '*' }))
+      table.cell('t$/s', theoreticalMoneyPerS, Printer.currency(g, { pre: '=', post: '/s' }))
+      table.cell('weight', log.weight, Printer.nNumber(g, { pre: '*' }))
+      table.cell('$max/1b', log.server.moneyMax / 1000000000, Printer.currency(g, { pre: '+' }))
+      table.cell('value', log.value, Printer.nNumber(g, { pre: '=' }))
+      table.cell('chance', log.chance, Printer.percent(g))
+      table.cell('diff', log.server.baseDifficulty, Printer.number(g))
+      table.cell('lvl', log.server.requiredHackingSkill, Printer.number(g))
+      table.cell('$avail', log.server.moneyAvailable, Printer.currency(g))
+      table.cell('$max', log.server.moneyMax, Printer.currency(g))
+      table.newRow()
     }
     g.ns.clearLog()
-    g.printTable({
-      rows: table,
-      opts: {
-        align: ['l', ...Array(table[0].length - 1).fill('r')],
-      },
-    })
+    g.printTable(table.sort(['value']))
     if (a.con) await ns.sleep(100)
     else break
   }

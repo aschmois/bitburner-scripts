@@ -1,6 +1,8 @@
 import { GangMemberAscension, GangMemberInfo } from '@ns'
+import EasyTable from 'easy-table'
 
 import { Global } from './lib/global.js'
+import { Printer } from '/lib/easy-table.js'
 
 let g: Global
 export async function main(ns: NS) {
@@ -44,11 +46,13 @@ export async function main(ns: NS) {
       }, [] as { name: string; cost: number }[])
       .sort((a, b) => a.cost - b.cost) // sort cheapest equipment first
 
-    const table: string[][] = [['Name', 'Hack', 'hack_asc_mul', 'hack_exp', 'Asc', 'Task', 'Equip Cost']]
+    const preProcessGangInfo = gang.getGangInformation()
+    const table = new EasyTable()
 
     for (const _member of members) {
       let member = _member
-      const log = [member.name]
+      table.cell('Name', member.name)
+      table.cell('Hack', member.hack, Printer.nNumber(g))
 
       /* Ascension */
       const ascension = gang.getAscensionResult(member.name)
@@ -57,23 +61,24 @@ export async function main(ns: NS) {
       })
 
       // hack
-      log.push(g.n(member.hack))
-      log.push(
-        `${g.n(member.hack_asc_mult)} * ${g.n(ascension?.hack ?? 0)} > ${g.n(getValueToAscend(member.hack_asc_mult))}`
-      )
-      log.push(g.n(member.hack_exp))
+      const hackAsc = ascension?.hack ?? 0
+      table.cell('Hack', member.hack, Printer.nNumber(g))
+      table.cell('HAM', member.hack_asc_mult, Printer.nNumber(g))
+      table.cell('HAR', hackAsc, Printer.nNumber(g))
+      table.cell('CHAV', member.hack_asc_mult * hackAsc, Printer.nNumber(g))
+      table.cell('HAV', getValueToAscend(member.hack_asc_mult), Printer.nNumber(g))
 
       // Should not ascend if we don't have at least 10b
       if (check && g.ns.getServerMoneyAvailable('home') >= 10_000_000_000) {
         if (noAscend) {
-          log.push('✓')
+          table.cell('Asc', '✓')
         } else {
-          log.push(gang.ascendMember(member.name) ? '✓' : 'X')
+          table.cell('Asc', gang.ascendMember(member.name) ? '✓' : 'X')
           // since the member was ascended update the reference
           member = gang.getMemberInformation(member.name)
         }
       } else {
-        log.push('X')
+        table.cell('Asc', 'X')
       }
 
       /* Task management */
@@ -98,9 +103,6 @@ export async function main(ns: NS) {
 
       gang.setMemberTask(member.name, task)
 
-      if (member.task !== task) log.push(`${member.task} -> ${task}`)
-      else log.push(task)
-
       /* Equipment */
       const currEquipment = new Set([...member.upgrades, ...member.augmentations])
       let equipCost = 0
@@ -109,25 +111,30 @@ export async function main(ns: NS) {
           equipCost += cost
         }
       }
-      log.push(equipCost > 0 ? g.n(equipCost, '$0.00a') : '✓')
-      table.push(log)
+      table.cell('Equip Cost', equipCost, Printer.currency(g))
+
+      if (member.task !== task) table.cell('Task', `${member.task} -> ${task}`)
+      else table.cell('Task', task)
+      table.newRow()
+      await g.ns.sleep(1) // give cpu rest between members
     }
     g.ns.clearLog()
-    g.printTable({
-      rows: table,
-      opts: {
-        align: [
-          'l', // Name
-          'r', // Hack
-          'r', // hack_asc_mul
-          'r', // hack_exp
-          'c', // Asc
-          'l', // Task
-          'r', // Equip Cost
-        ],
-      },
-    })
-    await g.ns.sleep(1000)
+    g.printTable(table.sort(['Hack']))
+    g.printf(
+      '[%s][%s] $%s/s | Members: %s | Power: %s | Respect: %s;%s/s | Territory: %s | Wanted: %s;%s/s;%s%%',
+      preProcessGangInfo.faction,
+      preProcessGangInfo.isHacking ? 'HACKING' : 'COMBAT',
+      g.n(preProcessGangInfo.moneyGainRate),
+      g.n(members.length),
+      g.n(preProcessGangInfo.power),
+      g.n(preProcessGangInfo.respect),
+      g.n(preProcessGangInfo.respectGainRate),
+      g.n(preProcessGangInfo.territory),
+      g.n(preProcessGangInfo.wantedLevel),
+      g.n(preProcessGangInfo.wantedLevelGainRate),
+      g.n(preProcessGangInfo.wantedPenalty * 100)
+    )
+    await g.ns.sleep(500)
   }
 }
 

@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import table from 'ext-lib/text-table/text-table.js'
+import EasyTable from 'easy-table'
 
 export class Global {
   public ns: NS
@@ -35,17 +35,17 @@ export class Global {
     }
   }
 
-  printTable(tableInfo: Table) {
+  printTable(table: EasyTable): void {
     if (this.printOnTerminal) {
-      this.ns.tprintf('%s', table(tableInfo.rows, tableInfo.opts))
+      this.ns.tprintf('%s', table.toString())
     } else {
-      this.ns.printf('%s', table(tableInfo.rows, tableInfo.opts))
+      this.ns.printf('%s', table.toString())
     }
   }
 
-  printTable_(caller: string, tableInfo: Table) {
+  printTable_(caller: string, table: EasyTable) {
     if (!this.disableFunctions.has(caller)) {
-      this.printTable(tableInfo)
+      this.printTable(table)
     }
   }
 
@@ -67,5 +67,3 @@ export class Global {
     return this.ns.nFormat(number, format)
   }
 }
-
-export type Table = { rows: string[][]; opts?: Record<string, unknown> }

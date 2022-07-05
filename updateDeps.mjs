@@ -41,36 +41,6 @@ async function download(url, dest) {
   })
 }
 
-async function downloadJsFile(lib, libDir) {
-  const jsPath = await download(lib.url, `${libDir}/${lib.name}.js`)
-  console.log(lib.name, 'Downloaded', jsPath)
-  const data = await fs.promises.readFile(jsPath, 'utf8')
-  var result = data.replace(/module.exports =/g, 'export default')
-  await fs.promises.writeFile(jsPath, result, 'utf8')
-  console.log(lib.name, 'Replaced module.exports with export default')
-}
-
-const libs = [
-  {
-    name: 'ascii-progress',
-    license: 'https://raw.githubusercontent.com/bubkoo/ascii-progress/master/LICENSE',
-    url: 'https://raw.githubusercontent.com/bubkoo/ascii-progress/master/index.js',
-  },
-  {
-    name: 'text-table',
-    license: 'https://raw.githubusercontent.com/substack/text-table/master/LICENSE',
-    url: 'https://raw.githubusercontent.com/substack/text-table/master/index.js',
-  },
-]
-const libRootDir = './src/ext-lib'
-await fs.promises.rm(libRootDir, { recursive: true, force: true })
-for (const lib of libs) {
-  const libDir = `${libRootDir}/${lib.name}`
-  downloadJsFile(lib, libDir)
-  if (lib.license) download(lib.license, `${libDir}/LICENSE`).then((dl) => console.log(lib.name, 'Downloaded', dl))
-  if (lib.types) download(lib.types, `${libDir}/${lib.name}.d.ts`).then((dl) => console.log(lib.name, 'Downloaded', dl))
-}
-
 // Download Bitburner defs
 console.log(
   'Downloaded',

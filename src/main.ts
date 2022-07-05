@@ -1,7 +1,7 @@
-import { Global } from './lib/global.js'
+import { Global } from './lib/global'
 
-import { isHome } from './lib/utils.js'
-import { isHackable, scanForServers } from './lib/utils/scan.js'
+import { isHome } from './lib/utils'
+import { isHackable, scanForServers } from './lib/utils/scan'
 import {
   RunningScripts,
   Script,
@@ -14,8 +14,11 @@ import {
   getMaxHacks,
   isScript,
   scriptNames,
-} from './lib/utils/exec.js'
-import { nukeServer } from './lib/utils/root.js'
+} from './lib/utils/exec'
+import { nukeServer } from './lib/utils/root'
+
+import { Printer } from '/lib/easy-table'
+import EasyTable from 'easy-table'
 
 let g: Global
 export async function main(ns: NS) {
@@ -29,7 +32,18 @@ export async function main(ns: NS) {
     g.disableLog('openPort')
     g.disableLog('maximizeScriptExec')
     g.disableLog('scanForServers')
-    g.disableLog('logRunningScripts')
+  }
+  if (g.ns.fileExists(Script.Hack, 'home')) {
+    await g.ns.write(Script.Hack, 'export async function main(ns) {await ns.hack(ns.args[0])}', 'w')
+  }
+  if (g.ns.fileExists(Script.Grow, 'home')) {
+    await g.ns.write(Script.Grow, 'export async function main(ns) {await ns.grow(ns.args[0])}', 'w')
+  }
+  if (g.ns.fileExists(Script.Weaken, 'home')) {
+    await g.ns.write(Script.Weaken, 'export async function main(ns) {await ns.weaken(ns.args[0])}', 'w')
+  }
+  if (g.ns.fileExists(Script.Share, 'home')) {
+    await g.ns.write(Script.Share, 'export async function main(ns) {await ns.share()}', 'w')
   }
   const runningScripts: RunningScripts = new Map()
   let servers = scan()
@@ -97,8 +111,8 @@ function scan() {
 }
 
 function logRunningScripts(runningScripts: RunningScripts) {
-  const runningArray = []
-  const forcedArray = []
+  const table = new EasyTable()
+  const forcedTable = new EasyTable()
   let accShareInstances = 0
   for (const [hostname, runningScriptExecutions] of runningScripts.entries()) {
     const server = g.ns.getServer(hostname)
@@ -107,16 +121,51 @@ function logRunningScripts(runningScripts: RunningScripts) {
       let runningWeakens = runningCount.get(Script.Weaken) ?? 0
       let runningGrows = runningCount.get(Script.Grow) ?? 0
       let runningHacks = runningCount.get(Script.Hack) ?? 0
-      if (runningGrows > 0 || runningWeakens > 0 || runningHacks > 0) {
+      if (runningWeakens > 0 || runningGrows > 0 || runningHacks > 0) {
         const maxWeakens = getMaxWeakens(g, server)
         const maxGrows = getMaxGrows(g, server)
         const maxHacks = getMaxHacks(g, server)
-        runningArray.push([
-          server.hostname,
-          `${runningGrows > maxGrows ? '!!' : ''}${g.n(runningGrows, '0,0')}/${g.n(maxGrows, '0,0')}`,
-          `${runningWeakens > maxWeakens ? '!!' : ''}${g.n(runningWeakens, '0,0')}/${g.n(maxWeakens, '0,0')}`,
-          `${runningHacks > maxHacks ? '!!' : ''}${g.n(runningHacks, '0,0')}/${g.n(maxHacks, '0,0')}`,
-        ])
+        table.cell('Hostname', server.hostname)
+        table.cell(
+          'RW',
+          runningWeakens,
+          Printer.nNumber(g, {
+            transform: (str) => {
+              if (runningWeakens > maxWeakens) {
+                return '!!' + str
+              }
+              return str
+            },
+          })
+        )
+        table.cell('MW', maxWeakens, Printer.nNumber(g))
+        table.cell(
+          'RG',
+          runningGrows,
+          Printer.nNumber(g, {
+            transform: (str) => {
+              if (runningGrows > maxGrows) {
+                return '!!' + str
+              }
+              return str
+            },
+          })
+        )
+        table.cell('MG', maxGrows, Printer.nNumber(g))
+        table.cell(
+          'RH',
+          runningHacks,
+          Printer.nNumber(g, {
+            transform: (str) => {
+              if (runningHacks > maxHacks) {
+                return '!!' + str
+              }
+              return str
+            },
+          })
+        )
+        table.cell('MH', maxHacks, Printer.nNumber(g))
+        table.newRow()
         if (runningGrows > maxGrows || runningWeakens > maxWeakens || runningHacks > maxHacks) {
           for (const [pid, exe] of runningScriptExecutions.entries()) {
             if (exe.forced) continue
@@ -126,36 +175,18 @@ function logRunningScripts(runningScripts: RunningScripts) {
                 if (runningWeakens > maxWeakens) {
                   g.ns.kill(pid)
                   runningWeakens -= exe.instances
-                  g.printf_(
-                    'logRunningScripts',
-                    '[%s] Killed weaken script. Removed %s instances',
-                    exe.hacking.hostname,
-                    g.n(exe.instances, '0,0')
-                  )
                 }
                 break
               case Script.Grow:
                 if (runningGrows > maxGrows) {
                   g.ns.kill(pid)
                   runningGrows -= exe.instances
-                  g.printf_(
-                    'logRunningScripts',
-                    '[%s] Killed weaken script. Removed %s instances',
-                    exe.hacking.hostname,
-                    g.n(exe.instances, '0,0')
-                  )
                 }
                 break
               case Script.Hack:
                 if (runningHacks > maxHacks) {
                   g.ns.kill(pid)
                   runningHacks -= exe.instances
-                  g.printf_(
-                    'logRunningScripts',
-                    '[%s] Killed weaken script. Removed %s instances',
-                    exe.hacking.hostname,
-                    g.n(exe.instances, '0,0')
-                  )
                 }
                 break
               case Script.Share:
@@ -171,39 +202,20 @@ function logRunningScripts(runningScripts: RunningScripts) {
       const runningHacks = forced.get(Script.Hack) ?? 0
       accShareInstances += forced.get(Script.Share) ?? 0
       if (runningGrows > 0 || runningWeakens > 0 || runningHacks > 0) {
-        forcedArray.push([
-          server.hostname,
-          g.n(forced.get(Script.Grow) ?? 0, '0,0'),
-          g.n(forced.get(Script.Weaken) ?? 0, '0,0'),
-          g.n(forced.get(Script.Hack) ?? 0, '0,0'),
-        ])
+        forcedTable.cell('Hostname', server.hostname)
+        forcedTable.cell('FW', runningWeakens, Printer.nNumber(g))
+        forcedTable.cell('FG', runningGrows, Printer.nNumber(g))
+        forcedTable.cell('FH', runningHacks, Printer.nNumber(g))
+        forcedTable.newRow()
       }
     }
   }
   g.ns.clearLog()
-  if (runningArray.length > 0) {
-    runningArray.sort(function (a, b) {
-      return a[0].localeCompare(b[0])
-    })
-    const rows = [['Hostname', 'Weaken', 'Grow', 'Hack'], ['--------', '------', '----', '----'], ...runningArray]
-    g.printTable({
-      rows,
-      opts: {
-        align: ['l', ...Array(rows[0].length - 1).fill('r')],
-      },
-    })
+  if (table.columns().length > 0) {
+    g.printTable(table.sort(['Hostname']))
   }
-  if (forcedArray.length > 0) {
-    forcedArray.sort(function (a, b) {
-      return a[0].localeCompare(b[0])
-    })
-    const rows = [['Hostname', 'Weaken', 'Grow', 'Hack'], ['--------', '------', '----', '----'], ...forcedArray]
-    g.printTable({
-      rows,
-      opts: {
-        align: ['l', ...Array(rows[0].length - 1).fill('r')],
-      },
-    })
+  if (forcedTable.columns().length > 0) {
+    g.printTable(forcedTable.sort(['Hostname']))
   }
   g.printf(
     '$%s/s | %sxp/s | Share Power/Instances: %s/%s | Karma: %s',
