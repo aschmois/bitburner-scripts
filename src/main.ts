@@ -126,44 +126,11 @@ function logRunningScripts(runningScripts: RunningScripts) {
         const maxGrows = getMaxGrows(g, server)
         const maxHacks = getMaxHacks(g, server)
         table.cell('Hostname', server.hostname)
-        table.cell(
-          'RW',
-          runningWeakens,
-          Printer.nNumber(g, {
-            transform: (str) => {
-              if (runningWeakens > maxWeakens) {
-                return '!!' + str
-              }
-              return str
-            },
-          })
-        )
+        table.cell('RW', runningWeakens, Printer.nNumber(g, { pre: runningWeakens > maxWeakens ? '!!' : '' }))
         table.cell('MW', maxWeakens, Printer.nNumber(g))
-        table.cell(
-          'RG',
-          runningGrows,
-          Printer.nNumber(g, {
-            transform: (str) => {
-              if (runningGrows > maxGrows) {
-                return '!!' + str
-              }
-              return str
-            },
-          })
-        )
+        table.cell('RG', runningGrows, Printer.nNumber(g, { pre: runningGrows > maxGrows ? '!!' : '' }))
         table.cell('MG', maxGrows, Printer.nNumber(g))
-        table.cell(
-          'RH',
-          runningHacks,
-          Printer.nNumber(g, {
-            transform: (str) => {
-              if (runningHacks > maxHacks) {
-                return '!!' + str
-              }
-              return str
-            },
-          })
-        )
+        table.cell('RH', runningHacks, Printer.nNumber(g, { pre: runningHacks > maxHacks ? '!!' : '' }))
         table.cell('MH', maxHacks, Printer.nNumber(g))
         table.newRow()
         if (runningGrows > maxGrows || runningWeakens > maxWeakens || runningHacks > maxHacks) {
