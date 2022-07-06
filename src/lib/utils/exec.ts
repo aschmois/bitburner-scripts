@@ -62,7 +62,15 @@ export function executeScripts(
       if (g.ns.getHackingLevel() < xpServer.requiredHackingSkill) {
         xpServer = g.ns.getServer('n00dles')
       }
-      if (xpServer.hasAdminRights) exe = maximizeScriptExec(g, server, Script.Weaken, xpServer, undefined, true)
+      if (xpServer.hasAdminRights) {
+        if (xpServer.hackDifficulty > xpServer.minDifficulty + 5) {
+          // weaken if not minDifficulty
+          exe = maximizeScriptExec(g, server, Script.Weaken, xpServer, undefined, true)
+        } else {
+          // hack if min difficulty for faster xp
+          exe = maximizeScriptExec(g, server, Script.Hack, xpServer, undefined, true)
+        }
+      }
     } else {
       exe = maximizeScriptExec(g, server, Script.Share, undefined, undefined, true)
     }
