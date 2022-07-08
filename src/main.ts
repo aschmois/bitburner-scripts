@@ -178,11 +178,11 @@ function logRunningScripts(runningScripts: RunningScripts) {
     }
   }
   g.ns.clearLog()
-  if (table.columns().length > 0) {
-    g.printTable(table.sort(['Hostname']))
-  }
   if (forcedTable.columns().length > 0) {
     g.printTable(forcedTable.sort(['Hostname']))
+  }
+  if (table.columns().length > 0) {
+    g.printTable(table.sort(['Hostname']))
   }
   g.printf(
     '$%s/s | %sxp/s | Share Power/Instances: %s/%s | Karma: %s',
