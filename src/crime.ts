@@ -27,7 +27,7 @@ export async function main(ns: NS) {
         shouldBreak = true
       }
       const timeRemaining = getCrimeTimeRemaining()
-      if (!timeRemaining || timeRemaining < 2) {
+      if (!timeRemaining || timeRemaining < 1) {
         findBackdrop()?.click()
       }
       await ns.sleep(500)
