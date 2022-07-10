@@ -11,6 +11,7 @@ declare global {
   const ReactDOM: typeof ReactDOM
 
   interface NS extends bitburner.NS {
+    readonly gang: Gang
     heart: {
       /** hidden function
        * @returns player karma */
@@ -22,6 +23,11 @@ declare global {
     alterReality(): void
     rainbow(guess: string): void
   }
+
+  interface Gang extends bitburner.Gang {
+    getEquipmentType(equipName: string): EquipmentType
+  }
+  type EquipmentType = 'Augmentation' | 'Weapon' | 'Armor' | 'Vehicle' | 'Rootkit'
 
   type AutocompleteConfig = [string, string | number | boolean | string[]][]
 
