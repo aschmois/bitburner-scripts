@@ -33,16 +33,16 @@ export async function main(ns: NS) {
     g.disableLog('maximizeScriptExec')
     g.disableLog('scanForServers')
   }
-  if (g.ns.fileExists(Script.Hack, 'home')) {
+  if (!g.ns.fileExists(Script.Hack, 'home')) {
     await g.ns.write(Script.Hack, 'export async function main(ns) {await ns.hack(ns.args[0])}', 'w')
   }
-  if (g.ns.fileExists(Script.Grow, 'home')) {
+  if (!g.ns.fileExists(Script.Grow, 'home')) {
     await g.ns.write(Script.Grow, 'export async function main(ns) {await ns.grow(ns.args[0])}', 'w')
   }
-  if (g.ns.fileExists(Script.Weaken, 'home')) {
+  if (!g.ns.fileExists(Script.Weaken, 'home')) {
     await g.ns.write(Script.Weaken, 'export async function main(ns) {await ns.weaken(ns.args[0])}', 'w')
   }
-  if (g.ns.fileExists(Script.Share, 'home')) {
+  if (!g.ns.fileExists(Script.Share, 'home')) {
     await g.ns.write(Script.Share, 'export async function main(ns) {await ns.share()}', 'w')
   }
   const runningScripts: RunningScripts = new Map()
