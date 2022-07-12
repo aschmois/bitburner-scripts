@@ -226,7 +226,7 @@ export async function main(ns: NS) {
 
         // If our wanted penalty is too high, lower it
         if (
-          gangInfo.respect > 0 && // avoid lowering when respect is zero and penalty is stuck at 0.5
+          gangInfo.respect > 1 && // avoid lowering when respect is zero and penalty is stuck at 0.5
           ((member.task === HackingGangJob.EthicalHacking && gangInfo.wantedPenalty < 0.99) ||
             gangInfo.wantedPenalty < 0.95)
         ) {
