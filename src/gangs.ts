@@ -38,14 +38,7 @@ export async function main(ns: NS) {
     const members = gang
       .getMemberNames()
       .map((name) => gang.getMemberInformation(name))
-      .sort(
-        (a, b) =>
-          a.agi_asc_mult +
-          a.def_asc_mult +
-          a.dex_asc_mult +
-          a.str_asc_mult -
-          (b.agi_asc_mult + b.def_asc_mult + b.dex_asc_mult + b.str_asc_mult)
-      ) // Sort by highest combat last
+      .sort((a, b) => getCombatValue(g, a) - getCombatValue(g, b)) // Sort by highest combat last
     for (let index = 0; index < territoryWarfareMax; index++) {
       const member = members.pop() // Remove combat members from main array
       if (!member) break
@@ -274,6 +267,16 @@ export async function main(ns: NS) {
     )
     await g.ns.sleep(500)
   }
+}
+
+function getCombatValue(g: Global, member: GangMemberInfo): number {
+  const ascMult = member.agi_asc_mult + member.def_asc_mult + member.dex_asc_mult + member.str_asc_mult
+  const levelWeight = [member.agi, member.def, member.dex, member.str]
+    .map((v) => v / 100_000) // make the weight of levels low
+    .reduce((acc, v) => acc + v) // sum all numbers
+  const augCount = member.augmentations.length / 100 // Make the weight of aug count low
+  // TODO: Consider purchased augs by type?
+  return ascMult + levelWeight + augCount
 }
 
 function isCombatMember(g: Global, memberName: string, combatMembers: Set<string>) {
