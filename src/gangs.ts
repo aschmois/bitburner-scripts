@@ -206,14 +206,14 @@ export async function main(ns: NS) {
         task = HackingGangJob.MoneyLaundering
 
         if (!forceMoney) {
-          if (needMoreMembers) {
-            task = HackingGangJob.Cyberterrorism
-          }
-
           const hackingLevel = getLevelToStopTraining(member, 'hack')
           if (member.hack < hackingLevel) {
             // Hacking level should reach hackingLevel before being member is useful
             task = HackingGangJob.TrainHacking
+          }
+          if (member.hack > 5000 && needMoreMembers) {
+            // At level 5000 cyberterrorism doesn't increase wanted as much
+            task = HackingGangJob.Cyberterrorism
           }
         }
 
