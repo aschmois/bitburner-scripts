@@ -14,7 +14,7 @@ if (args[0] === '--watch') {
 }
 esbuild
   .build({
-    entryPoints: glob.sync('src/*.ts'),
+    entryPoints: [...glob.sync('src/*.ts'), ...glob.sync('src/*.js')],
     outdir: 'out/',
     bundle: true,
     platform: 'node',
