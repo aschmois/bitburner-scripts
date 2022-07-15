@@ -21,6 +21,7 @@ export async function main(ns: NS) {
     if (!hasFormulaApi) {
       hasFormulaApi = g.ns.fileExists('Formulas.exe', 'home')
     }
+    const tasks = g.ns.gang.getTaskNames().map((v) => g.ns.gang.getTaskStats(v))
     const preProcessGangInfo = gang.getGangInformation()
     const maxMembers = preProcessGangInfo.isHacking ? 12 : 12 // TODO: combat
     try {
@@ -211,9 +212,19 @@ export async function main(ns: NS) {
             // Hacking level should reach hackingLevel before being member is useful
             task = HackingGangJob.TrainHacking
           }
-          if (member.hack > 5000 && needMoreMembers) {
-            // At level 5000 cyberterrorism doesn't increase wanted as much
-            task = HackingGangJob.Cyberterrorism
+          if (needMoreMembers) {
+            let highestRespectGain = 0
+            for (const respectTask of tasks) {
+              const respectTaskName = isHackingGangJob(respectTask.name)
+              if (respectTaskName) {
+                const respectGain = g.ns.formulas.gang.respectGain(gangInfo, member, respectTask)
+                const wantedLevelGain = g.ns.formulas.gang.wantedLevelGain(gangInfo, member, respectTask)
+                if (respectGain > 1 && wantedLevelGain < 10 && respectGain > highestRespectGain) {
+                  highestRespectGain = respectGain
+                  task = respectTaskName
+                }
+              }
+            }
           }
         }
 
@@ -288,10 +299,10 @@ function isCombatMember(g: Global, memberName: string, combatMembers: Set<string
 
 function getLevelToStopTraining(member: GangMemberInfo, prop: GangTypeProps): number {
   if (member[`${prop}_asc_mult`] < 10) return 5000
-  if (member[`${prop}_asc_mult`] < 20) return 6000
-  if (member[`${prop}_asc_mult`] < 30) return 7000
-  if (member[`${prop}_asc_mult`] < 40) return 10000
-  if (member[`${prop}_asc_mult`] < 50) return 15000
+  if (member[`${prop}_asc_mult`] < 30) return 6000
+  if (member[`${prop}_asc_mult`] < 40) return 7000
+  if (member[`${prop}_asc_mult`] < 50) return 10000
+  if (member[`${prop}_asc_mult`] < 60) return 15000
   return 15000
 }
 
@@ -393,4 +404,10 @@ enum HackingGangJob {
   TrainHacking = 'Train Hacking',
   TrainCharisma = 'Train Charisma',
   TerritoryWarfare = 'Territory Warfare',
+}
+
+const hackingGangJobNames = Object.values(HackingGangJob)
+
+function isHackingGangJob(job: string | HackingGangJob): HackingGangJob | null {
+  return (hackingGangJobNames as string[]).includes(job) ? (job as HackingGangJob) : null
 }
