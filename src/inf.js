@@ -458,6 +458,11 @@ export async function main(ns) {
  * The infiltration loop, which is called at a rapid interval
  */
 function infLoop() {
+  const sellBtn = filterByText(getEl('button'), 'Sell')
+  if (sellBtn) {
+    const handler = Object.keys(sellBtn)[1]
+    sellBtn[handler].onClick({ isTrusted: true })
+  }
   if (!state.started) {
     waitForStart()
   } else {
@@ -530,6 +535,7 @@ function getLines(elements) {
  * Reset the state after infiltration is done.
  */
 function endInfiltration() {
+  console.log('Automatic infiltration of', state.company, 'ended.')
   unwrapEventListeners()
   state.company = ''
   state.started = false
@@ -577,6 +583,25 @@ function pressKey(keyOrCode) {
 function waitForStart() {
   if (state.started) {
     return
+  }
+
+  for (const elem of doc.querySelectorAll('p')) {
+    if (elem.textContent == 'City') {
+      elem.click()
+      break
+    }
+  }
+
+  const corp = doc.querySelector('[aria-label="MegaCorp"]')
+
+  if (corp) {
+    corp.click()
+  }
+
+  const infBtn = filterByText(getEl('button'), 'Infiltrate')
+  if (infBtn) {
+    const handler = Object.keys(infBtn)[1]
+    infBtn[handler].onClick({ isTrusted: true })
   }
 
   const sell = getEl('.css-1xf6mhx')
